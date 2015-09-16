@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
 	ofstream outStat;
 	int windowSize;
 
-	for (int rep = 0; rep < 5; ++rep) {
+	for (int rep = 0; rep < 1; ++rep) {
 		std::cout << "Rep = " << rep << std::endl;
 
 		// standard IsolationForest
@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
 		sprintf(fName, "%s.score.offline.r%d.csv", output_name, rep);
 		printScoreToFile(scores, metadata, fName);
 
-		for (int wi = 0; wi < 5; ++wi) {
+		for (int wi = 0; wi < 1; ++wi) {
 			windowSize = WINSIZE[wi];
 			std::cout << "WS = " << windowSize << std::endl;
 

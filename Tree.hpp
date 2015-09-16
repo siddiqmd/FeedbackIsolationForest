@@ -34,7 +34,9 @@ public:
 		newNodeSize = 0;
 	}
 
-	virtual ~Tree() { //delete *leftChild; //check if deleting the child is need.
+	virtual ~Tree() {
+		delete leftChild;
+		delete rightChild;
 	}
 
 	void iTree(std::vector<int> const &dIndex, const doubleframe* dt,

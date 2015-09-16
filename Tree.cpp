@@ -96,12 +96,10 @@ double Tree::pathLength(double *inst) {
 void Tree::renewNodeSize(){
 	nodeSize = newNodeSize;
 	newNodeSize = 0;
-	if(leftChild != NULL){
-		leftChild->renewNodeSize();
-	}
-	if(rightChild != NULL){
-		rightChild->renewNodeSize();
-	}
+	if(leftChild == NULL && rightChild == NULL)
+		return;
+	leftChild->renewNodeSize();
+	rightChild->renewNodeSize();
 }
 
 void Tree::update(const double inst[]){
