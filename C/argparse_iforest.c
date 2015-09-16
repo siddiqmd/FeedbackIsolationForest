@@ -10,6 +10,7 @@
 #define HOPT 6
 #define VOPT 7
 #define WOPT 8
+#define COPT 8
 
 d(option)* option_spec() {
     d(option)* opts = vecalloc(option,NOPTS);
@@ -103,6 +104,17 @@ d(option)* option_spec() {
         .isflag = false,
         .flagged = false
     };
+    opts[COPT] = (option){
+        .sarg = 'c',
+        .larg = "columns",
+        .name = "N",
+        .desc = "specify number of columns to use.",
+        .default_value = "0",
+        .value = NULL,
+        .isflag = false,
+        .flagged = false
+    };
+
     return opts;
 }
 
@@ -142,5 +154,6 @@ parsed_args* validate_args(d(option*) opts) {
     pargs->header = opts[HOPT].flagged;
     pargs->verbose = opts[VOPT].flagged;
     pargs->window_size = strtol(opts[WOPT].value,NULL,10);
+    pargs->columns = strtol(opts[COPT].value,NULL,10);
     return pargs;
 }
