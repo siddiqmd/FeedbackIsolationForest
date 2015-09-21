@@ -21,7 +21,11 @@ class Tree {
 	double splittingPoint;
 
 	int newNodeSize; // new attribute for online IF
+	double minAttVal, maxAttVal;
 public:
+	static long total; // counts number of nodes access
+	static long numDrifts; // counts number of instances crossing the boundary of min and max
+	static long numDriftsHandled; // counts number of instances crossing handled outside of boundary
 
 	Tree() {
 		leftChild = NULL;
@@ -32,6 +36,8 @@ public:
 		depth = 0;
 		nodeSize = 0;
 		newNodeSize = 0;
+		minAttVal = 0;
+		maxAttVal = 0;
 	}
 
 	virtual ~Tree() {

@@ -7,6 +7,10 @@
 
 #include "Tree.hpp"
 
+long Tree::total = 0;
+long Tree::numDrifts = 0;
+long Tree::numDriftsHandled = 0;
+
 void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt,
 		int height, int maxheight, bool stopheight) {
 	this->depth = height; // Tree height
@@ -56,6 +60,8 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt,
 	this->splittingAtt = attributes[randomI(0, attributes.size() - 1)]; //randx];
 	this->splittingPoint = randomD(minmax[this->splittingAtt][0],
 			minmax[this->splittingAtt][1]);
+	this->minAttVal = minmax[this->splittingAtt][0];
+	this->maxAttVal = minmax[this->splittingAtt][1];
 
 	//Split the node into two
 	std::vector<int> lnodeData, rnodeData;
@@ -82,8 +88,23 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt,
  * takes an instance as vector of double
  */
 double Tree::pathLength(double *inst) {
+	this->total++;
 	if ((this->leftChild == NULL && this->rightChild == NULL) || this->nodeSize <= 0) {
 		return avgPL(this->nodeSize);
+	}
+	if(inst[this->splittingAtt] < minAttVal){
+		++this->numDrifts;
+		if(randomD(inst[this->splittingAtt],maxAttVal) < minAttVal){
+			++this->numDriftsHandled;
+			return 0;
+		}
+	}
+	if(inst[this->splittingAtt] > maxAttVal){
+		++this->numDrifts;
+		if(randomD(minAttVal, inst[this->splittingAtt]) > maxAttVal){
+			++this->numDriftsHandled;
+			return 0;
+		}
 	}
 	if (inst[this->splittingAtt] <= this->splittingPoint) {
 		return this->leftChild->pathLength(inst) + 1.0;
