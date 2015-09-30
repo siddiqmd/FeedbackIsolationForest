@@ -26,6 +26,7 @@ public:
 	static long total; // counts number of nodes access
 	static long numDrifts; // counts number of instances crossing the boundary of min and max
 	static long numDriftsHandled; // counts number of instances crossing handled outside of boundary
+	static bool checkRange;
 
 	Tree() {
 		leftChild = NULL;
