@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
 	vector<double> scores;
 	int windowSize;
 
-	for (int v = 0; v <= 1; ++v) {
+	for (int v = 1; v <= 1; ++v) {
 		Tree::useVolumeForScore = (v == 1);
 		std::cout << "Volume = " << v << std::endl;
 		for (int rep = 0; rep < 10; ++rep) {
@@ -209,6 +209,10 @@ int main(int argc, char* argv[]) {
 
 			// standard IsolationForest
 			IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
+//			sprintf(fName, "D:/ADAPT/OIF/Test/weather/trees/tree.v%d.r%d.txt", v, rep);
+//			ofstream tree(fName);
+//			iff.printStat(tree);
+//			tree.close();
 			scores.clear();
 			scores = iff.AnomalyScore(dt);
 			sprintf(fName, "%s.OFF.v%d.r%d.csv", output_name, v, rep);

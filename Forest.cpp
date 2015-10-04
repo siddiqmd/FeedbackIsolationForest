@@ -17,8 +17,8 @@ double Forest::getdepth(double* inst, Tree* tree) {
 double Forest::instanceScore(double *inst) {
 
 	double avgPathLength = mean(pathLength(inst));
-	double scores = pow(2, -avgPathLength / avgPL(this->nsample));
-	return scores;
+//	double scores = pow(2, -avgPathLength / avgPL(this->nsample));
+	return avgPathLength;//scores;
 
 }
 
@@ -107,5 +107,6 @@ void Forest::getSample(std::vector<int> &sampleIndex, int nsample,
 void Forest::printStat(std::ofstream &out){
 	for(int i = 0; i < this->ntree; ++i){
 		this->trees[i]->printDepthAndNodeSize(out);
+		out << "#####################################" << std::endl;
 	}
 }

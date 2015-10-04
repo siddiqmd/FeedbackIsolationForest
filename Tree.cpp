@@ -78,9 +78,15 @@ double Tree::pathLength(double *inst) {
 			cur = cur->rightChild;
 	}
 	if(Tree::useVolumeForScore == true){
-		if(cur->nodeSize <= 1)
-			return (-cur->nodeSize/cur->volume);
-		return (-1/(cur->volume - log(cur->newNodeSize)));
+//		if(cur->nodeSize <= 1)
+//			return (-cur->nodeSize/cur->volume);
+//		return (-1/(cur->volume - log(cur->nodeSize)));
+		double d = (cur->depth + avgPL(cur->nodeSize));
+		double vol = cur->volume;
+		if(cur->nodeSize > 1)
+			vol -= log(cur->nodeSize);
+		return (d * -vol);
+//		return (-cur->nodeSize/cur->volume);
 	}
 	return (cur->depth + avgPL(cur->nodeSize));
 }
@@ -106,10 +112,34 @@ void Tree::update(const double inst[]){
 }
 
 void Tree::printDepthAndNodeSize(std::ofstream &out){
-	if(this->leftChild == NULL && this->rightChild == NULL){
-		out << this->depth << "," << this->nodeSize << std::endl;
-	}else{
-		this->leftChild->printDepthAndNodeSize(out);
-		this->rightChild->printDepthAndNodeSize(out);
-	}
+	for(int i = 0; i < depth; ++i)
+		out << "-";
+	out << "(" << depth
+		<< ", " << nodeSize
+		<< ", " << exp(volume)
+		<< ", " << splittingAtt
+		<< ", " << minAttVal
+		<< ", " << splittingPoint
+		<< ", " << maxAttVal
+		<< ")" << std::endl;
+	if(leftChild != NULL)
+		leftChild->printDepthAndNodeSize(out);
+	if(rightChild != NULL)
+		rightChild->printDepthAndNodeSize(out);
+
+	//	if(this->leftChild == NULL && this->rightChild == NULL){
+	//		out << this->depth << "," << this->nodeSize << std::endl;
+	//	}else{
+	//		this->leftChild->printDepthAndNodeSize(out);
+	//		this->rightChild->printDepthAndNodeSize(out);
+	//	}
+
+//	if(this->leftChild == NULL && this->rightChild == NULL){
+//		out << this->depth << "," << this->nodeSize << std::endl;
+//	}else{
+//		this->leftChild->printDepthAndNodeSize(out);
+//		this->rightChild->printDepthAndNodeSize(out);
+//	}
 }
+
+
