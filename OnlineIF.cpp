@@ -1,8 +1,8 @@
 #include "OnlineIF.hpp"
 
 OnlineIF::OnlineIF(int _ntree, doubleframe* _df, int _nsample, int _maxheight,
-		bool _stopheight, bool _rsample, int _windowSize) :
-		Forest(_ntree, _nsample, _maxheight, _stopheight, _rsample) {
+		bool _rsample, int _windowSize) :
+		Forest(_ntree, _nsample, _maxheight, _rsample) {
 
 	this->windowSize = _windowSize;
 	this->updateCount = 0;
@@ -22,7 +22,7 @@ void OnlineIF::genInitTreeStructures(doubleframe *dataset){
 
 		// build trees
 		Tree *tree = new Tree();
-		tree->iTree(sampleIndex, dataset, 0, maxheight, stopheight);
+		tree->iTree(sampleIndex, dataset, maxheight);
 		this->trees.push_back(tree); //add tree to forest
 	}
 }

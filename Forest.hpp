@@ -15,7 +15,7 @@ class Forest {
 public:
 	std::vector<Tree*> trees;
 	int ntree;bool rsample;
-	int nsample;bool stopheight;
+	int nsample;
 	int maxheight;
 
 	Forest() {
@@ -24,10 +24,9 @@ public:
 		nsample = 256;
 	}
 	Forest(int _ntree, int _nsample, int _maxheight,
-			bool _stopheight, bool _rsample) {
+			bool _rsample) {
 		ntree = _ntree;
 		nsample = _nsample;
-		stopheight = _stopheight;
 		maxheight = _maxheight;
 		rsample = _rsample;
 	}
@@ -47,7 +46,7 @@ public:
 			bool weighttotail);
 	std::vector<double> importance(double *inst);
 	double getdepth(double *inst, Tree* tree);
-	void getSample(std::vector<int> &sampleIndex, const int nsample,
+	void getSample(std::vector<int> &sampleIndex, int nsample,
 			bool rSample, int nrow);
 	void printStat(std::ofstream &out);
 };

@@ -73,9 +73,7 @@ double avgPL(int n) {
 
 	return (((n - 1) <= 0) ?
 			0.0 :
-			((2.0 * (log((double) (n - 1)) + 0.5772156649))
-					- (2.0 * (double) (n - 1)) / (1.0 + (double) (n - 1))));
-
+			2.0 * (log(n - 1.0) + 0.5772156649 - (n - 1.0) / n));
 }
 
 double score(double depth, int n) {
@@ -198,7 +196,6 @@ false) {
 		scores.push_back(sum);
 	}
 	return scores;
-
 }
 
 /* UTITLITY_H_ */

@@ -7,113 +7,82 @@
 
 #include "Tree.hpp"
 
-long Tree::total = 0;
-long Tree::numDrifts = 0;
-long Tree::numDriftsHandled = 0;
-bool Tree::checkRange = false;
+bool Tree::useVolumeForScore = false;
 
-void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt,
-		int height, int maxheight, bool stopheight) {
-	this->depth = height; // Tree height
+void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &maxheight){
 	this->nodeSize = dIndex.size(); // Set size of the node
-	if (dIndex.size() <= 1 || (stopheight && this->depth > maxheight)) {
+	if (dIndex.size() <= 1 || (maxheight > 0 && this->depth > maxheight))
 		return;
-	}
 
-	//*** Need modification
-	//Initialize minmax array for holding max and min of an attributes
-	std::vector<std::vector<double> > minmax;
-	std::vector<double> tmp;
-
-	for (int j = 0; j < dt->ncol; j++) {
-		tmp.push_back(dt->data[dIndex[0]][j]);
-		tmp.push_back(dt->data[dIndex[0]][j]);
-		minmax.push_back(tmp); //initialize max and min to random value
-		tmp.clear();
-	}
-
-	//Compute max and min of each attribute
-	for (unsigned i = 0; i < dIndex.size(); i++) {
-		//vector<double> inst = data->data[i];
-		for (int j = 0; j < dt->ncol; j++) {
-			if (dt->data[dIndex.at(i)][j] < minmax[j].at(0))
-				minmax[j].at(0) = dt->data[dIndex.at(i)][j];
-			if (dt->data[dIndex.at(i)][j] > minmax.at(j).at(1))
-				minmax[j].at(1) = dt->data[dIndex.at(i)][j];
+	double min, max, temp;
+	int attCnt = dt->ncol, attribute, rIdx;
+	int *attPool = new int[attCnt];
+	for(int i = 0; i < attCnt; ++i)
+		attPool[i] = i;
+	while(attCnt > 0){
+		rIdx = randomI(0, attCnt - 1);
+		attribute = attPool[rIdx];
+		min = max = dt->data[dIndex[0]][attribute];
+		for(unsigned int i = 1; i < dIndex.size(); ++i){
+			temp = dt->data[dIndex[i]][attribute];
+			if (min > temp) min = temp;
+			if (max < temp) max = temp;
 		}
-
+		if(min < max) break; // found attribute
+		--attCnt;
+		attPool[rIdx] = attPool[attCnt];
 	}
+	delete []attPool;
+	if(attCnt <= 0) return; // no valid attribute found
 
-	//use only valid attributes
-	std::vector<int> attributes;
-	for (int j = 0; j < dt->ncol; j++) {
-		if (minmax[j][0] < minmax[j][1]) {
-			attributes.push_back(j);
-		}
-	}
-	//return if no valid attribute found
-	if (attributes.size() == 0)
-		return;
-	//Randomly pick an attribute and a split point
-
-	//int randx = randomI(0, attributes.size());
-
-	this->splittingAtt = attributes[randomI(0, attributes.size() - 1)]; //randx];
-	this->splittingPoint = randomD(minmax[this->splittingAtt][0],
-			minmax[this->splittingAtt][1]);
-	this->minAttVal = minmax[this->splittingAtt][0];
-	this->maxAttVal = minmax[this->splittingAtt][1];
+	this->minAttVal = min;
+	this->maxAttVal = max;
+	this->splittingAtt = attribute;
+	this->splittingPoint = randomD(min, max);
 
 	//Split the node into two
 	std::vector<int> lnodeData, rnodeData;
-	double maxVal = minmax[this->splittingAtt][1];
 	for (unsigned int i = 0; i < dIndex.size(); i++) {
-		double curVal = dt->data[dIndex.at(i)][splittingAtt];
-		if (curVal <= splittingPoint && curVal != maxVal) {
-			lnodeData.push_back(dIndex.at(i));
-		} else {
-			rnodeData.push_back(dIndex.at(i));
-		}
+		temp = dt->data[dIndex[i]][this->splittingAtt];
+		if (temp <= this->splittingPoint && temp != max)
+			lnodeData.push_back(dIndex[i]);
+		else
+			rnodeData.push_back(dIndex[i]);
 	}
 
 	leftChild = new Tree();
 	leftChild->parent = this;
-	leftChild->iTree(lnodeData, dt, this->depth + 1, maxheight, stopheight);
+	leftChild->depth = this->depth + 1;
+	leftChild->volume = this->volume + log(this->splittingPoint - this->minAttVal)
+									 - log(this->maxAttVal - this->minAttVal);
+	leftChild->iTree(lnodeData, dt, maxheight);
 
 	rightChild = new Tree();
 	rightChild->parent = this;
-	rightChild->iTree(rnodeData, dt, this->depth + 1, maxheight, stopheight);
+	rightChild->depth = this->depth + 1;
+	rightChild->volume = this->volume + log(this->maxAttVal - this->splittingPoint)
+									  - log(this->maxAttVal - this->minAttVal);
+	rightChild->iTree(rnodeData, dt, maxheight);
 }
 
 /*
  * takes an instance as vector of double
  */
 double Tree::pathLength(double *inst) {
-	if ((this->leftChild == NULL && this->rightChild == NULL) || this->nodeSize <= 0) {
-		return avgPL(this->nodeSize);
+	Tree *cur = this;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if(cur->nodeSize <= 1) break;
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
 	}
-	this->total++;
-	if(this->checkRange){
-		if(inst[this->splittingAtt] < minAttVal){
-			++this->numDrifts;
-			if(randomD(inst[this->splittingAtt],maxAttVal) < minAttVal){
-				++this->numDriftsHandled;
-				return 0;
-			}
-		}
-		if(inst[this->splittingAtt] > maxAttVal){
-			++this->numDrifts;
-			if(randomD(minAttVal, inst[this->splittingAtt]) > maxAttVal){
-				++this->numDriftsHandled;
-				return 0;
-			}
-		}
+	if(Tree::useVolumeForScore == true){
+		if(cur->nodeSize <= 1)
+			return (-cur->nodeSize/cur->volume);
+		return (-1/(cur->volume - log(cur->newNodeSize)));
 	}
-	if (inst[this->splittingAtt] <= this->splittingPoint) {
-		return this->leftChild->pathLength(inst) + 1.0;
-	} else {
-		return this->rightChild->pathLength(inst) + 1.0;
-	}
+	return (cur->depth + avgPL(cur->nodeSize));
 }
 
 // for online IF

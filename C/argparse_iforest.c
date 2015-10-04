@@ -1,6 +1,6 @@
 #include "argparse_iforest.h"
 
-#define NOPTS 9
+#define NOPTS 10
 #define IOPT 0
 #define OOPT 1
 #define MOPT 2
@@ -10,7 +10,7 @@
 #define HOPT 6
 #define VOPT 7
 #define WOPT 8
-#define COPT 8
+#define COPT 9
 
 d(option)* option_spec() {
     d(option)* opts = vecalloc(option,NOPTS);

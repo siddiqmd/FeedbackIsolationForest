@@ -22,11 +22,9 @@ class Tree {
 
 	int newNodeSize; // new attribute for online IF
 	double minAttVal, maxAttVal;
+	double volume;// store volume of this node in log scale
 public:
-	static long total; // counts number of nodes access
-	static long numDrifts; // counts number of instances crossing the boundary of min and max
-	static long numDriftsHandled; // counts number of instances crossing handled outside of boundary
-	static bool checkRange;
+	static bool useVolumeForScore;
 
 	Tree() {
 		leftChild = NULL;
@@ -36,9 +34,11 @@ public:
 		splittingPoint = 0;
 		depth = 0;
 		nodeSize = 0;
+
 		newNodeSize = 0;
 		minAttVal = 0;
 		maxAttVal = 0;
+		volume = 0;
 	}
 
 	virtual ~Tree() {
@@ -47,7 +47,7 @@ public:
 	}
 
 	void iTree(std::vector<int> const &dIndex, const doubleframe* dt,
-			int height, int maxHeight, bool stopheight);
+			int &maxHeight);
 	double pathLength(double *inst);
 	// for online IF
 	void renewNodeSize();

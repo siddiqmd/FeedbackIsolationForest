@@ -11,7 +11,7 @@ class OnlineIF: public Forest {
 public:
 	OnlineIF(){}
 	OnlineIF(int _ntree, doubleframe* _df, int _nsample, int _maxheight,
-			bool _stopheight, bool _rsample, int _windowSize);
+			bool _rsample, int _windowSize);
 	virtual ~OnlineIF() {}
 	double instanceScore(double *inst);
 	void update(double inst[]);

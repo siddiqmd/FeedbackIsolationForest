@@ -85,15 +85,23 @@ std::vector<double> Forest::importance(double *inst) {
 	return depth;
 }
 
-//Sample data from the datset
-void Forest::getSample(std::vector<int> &sampleIndex, const int nsample,
+void Forest::getSample(std::vector<int> &sampleIndex, int nsample,
 		bool rsample, int nrow) {
-	sampleIndex.clear();
-	if (rsample && nsample < nrow)
-		sampleI(0, nrow - 1, nsample, sampleIndex); //sample nsample
-	else
-		sampleI(0, nrow - 1, nrow, sampleIndex); //shuffle all index of the data 
-
+	if(nsample > nrow)
+		nsample = nrow;
+	int *rndIdx = new int[nrow];
+	for(int i = 0; i < nrow; ++i)
+		rndIdx[i] = i;
+	for(int i = 0; i < nsample; ++i){
+		int r = rand() % nrow;
+		int t = rndIdx[i];
+		rndIdx[i] = rndIdx[r];
+		rndIdx[r] = t;
+	}
+	for(int i = 0; i < nsample; ++i){
+		sampleIndex.push_back(rndIdx[i]);
+	}
+	delete []rndIdx;
 }
 
 void Forest::printStat(std::ofstream &out){
