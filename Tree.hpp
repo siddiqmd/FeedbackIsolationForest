@@ -24,6 +24,7 @@ class Tree {
 	double minAttVal, maxAttVal;
 	double volume;// store volume of this node in log scale
 public:
+	static bool checkRange;
 	static bool useVolumeForScore;
 
 	Tree() {

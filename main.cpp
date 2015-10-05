@@ -201,75 +201,79 @@ int main(int argc, char* argv[]) {
 	vector<double> scores;
 	int windowSize;
 
-	for (int v = 1; v <= 1; ++v) {
-		Tree::useVolumeForScore = (v == 1);
-		std::cout << "Volume = " << v << std::endl;
-		for (int rep = 0; rep < 10; ++rep) {
-			std::cout << "Rep = " << rep << std::endl;
+	for(int checkrange = 0; checkrange <= 1; ++checkrange){
+		Tree::checkRange = (checkrange == 1);
+		std::cout << "CheckRange = " << checkrange << std::endl;
+		for (int v = 0; v <= 1; ++v) {
+			Tree::useVolumeForScore = (v == 1);
+			std::cout << "Volume = " << v << std::endl;
+			for (int rep = 0; rep < 10; ++rep) {
+				std::cout << "Rep = " << rep << std::endl;
 
-			// standard IsolationForest
-			IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-//			sprintf(fName, "D:/ADAPT/OIF/Test/weather/trees/tree.v%d.r%d.txt", v, rep);
-//			ofstream tree(fName);
-//			iff.printStat(tree);
-//			tree.close();
-			scores.clear();
-			scores = iff.AnomalyScore(dt);
-			sprintf(fName, "%s.OFF.v%d.r%d.csv", output_name, v, rep);
-			printScoreToFile(scores, metadata, fName);
-
-			for (int wi = 0; wi < 5; ++wi) {
-				windowSize = WINSIZE[wi];
-				if (windowSize > dt->nrow)
-					windowSize = dt->nrow;
-				std::cout << "WS = " << windowSize << std::endl;
-
-				doubleframe *dtOn = copyRows(dt, 0, windowSize - 1);
-
-				// Fixed Tree
-				OnlineIF oif(ntree, dtOn, nsample, maxheight, rsample, windowSize);
+				// standard IsolationForest
+				IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
+	//			sprintf(fName, "D:/ADAPT/OIF/Test/weather/trees/tree.v%d.r%d.txt", v, rep);
+	//			ofstream tree(fName);
+	//			iff.printStat(tree);
+	//			tree.close();
 				scores.clear();
-				for (int i = 0; i < windowSize; ++i) {
-					scores.push_back(oif.instanceScore(dtOn->data[i]));
-				}
-				deletedoubleframe(dtOn);
-				for (int i = windowSize; i < dt->nrow; ++i) {
-					scores.push_back(oif.instanceScore(dt->data[i]));
-					oif.update(dt->data[i]);
-				}
-				sprintf(fName, "%s.FTS.v%d.w%d.r%d.csv", output_name, v,
-						WINSIZE[wi], rep);
+				scores = iff.AnomalyScore(dt);
+				sprintf(fName, "%s.OFF.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
 				printScoreToFile(scores, metadata, fName);
 
-				// Adaptive Tree Structure
-				IsolationForest *if0 = NULL, *if1;
-				scores.clear();
-				for (int st = 0; st <= dt->nrow; st += windowSize) {
-					int end = st + windowSize - 1;
-					if (end >= dt->nrow)
-						end = dt->nrow - 1;
-					doubleframe *dtOn = copyRows(dt, st, end);
+				for (int wi = 0; wi < 5; ++wi) {
+					windowSize = WINSIZE[wi];
+					if (windowSize > dt->nrow)
+						windowSize = dt->nrow;
+					std::cout << "WS = " << windowSize << std::endl;
 
-					if1 = new IsolationForest(ntree, dtOn, nsample, maxheight, rsample);
-					if (if0 != NULL) {
-						std::vector<double> tmpScores = if0->AnomalyScore(dtOn);
-						for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-							scores.push_back(tmpScores[jj]);
-						}
-						delete if0;
-					} else {
-						std::vector<double> tmpScores = if1->AnomalyScore(dtOn);
-						for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-							scores.push_back(tmpScores[jj]);
-						}
+					doubleframe *dtOn = copyRows(dt, 0, windowSize - 1);
+
+					// Fixed Tree
+					OnlineIF oif(ntree, dtOn, nsample, maxheight, rsample, windowSize);
+					scores.clear();
+					for (int i = 0; i < windowSize; ++i) {
+						scores.push_back(oif.instanceScore(dtOn->data[i]));
 					}
-					if0 = if1;
 					deletedoubleframe(dtOn);
+					for (int i = windowSize; i < dt->nrow; ++i) {
+						scores.push_back(oif.instanceScore(dt->data[i]));
+						oif.update(dt->data[i]);
+					}
+					sprintf(fName, "%s.FTS.v%d.w%d.r%d.c%d.csv", output_name, v,
+							WINSIZE[wi], rep, checkrange);
+					printScoreToFile(scores, metadata, fName);
+
+					// Adaptive Tree Structure
+					IsolationForest *if0 = NULL, *if1;
+					scores.clear();
+					for (int st = 0; st <= dt->nrow; st += windowSize) {
+						int end = st + windowSize - 1;
+						if (end >= dt->nrow)
+							end = dt->nrow - 1;
+						doubleframe *dtOn = copyRows(dt, st, end);
+
+						if1 = new IsolationForest(ntree, dtOn, nsample, maxheight, rsample);
+						if (if0 != NULL) {
+							std::vector<double> tmpScores = if0->AnomalyScore(dtOn);
+							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+								scores.push_back(tmpScores[jj]);
+							}
+							delete if0;
+						} else {
+							std::vector<double> tmpScores = if1->AnomalyScore(dtOn);
+							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+								scores.push_back(tmpScores[jj]);
+							}
+						}
+						if0 = if1;
+						deletedoubleframe(dtOn);
+					}
+					delete if0;
+					sprintf(fName, "%s.ATS.v%d.w%d.r%d.c%d.csv", output_name, v,
+							WINSIZE[wi], rep, checkrange);
+					printScoreToFile(scores, metadata, fName);
 				}
-				delete if0;
-				sprintf(fName, "%s.ATS.v%d.w%d.r%d.csv", output_name, v,
-						WINSIZE[wi], rep);
-				printScoreToFile(scores, metadata, fName);
 			}
 		}
 	}

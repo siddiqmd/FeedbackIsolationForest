@@ -7,6 +7,7 @@
 
 #include "Tree.hpp"
 
+bool Tree::checkRange = false;
 bool Tree::useVolumeForScore = false;
 
 void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &maxheight){
@@ -70,9 +71,36 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
  */
 double Tree::pathLength(double *inst) {
 	Tree *cur = this;
+	double min, max, instAttVal, temp;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
 		if(cur->nodeSize <= 1) break;
-		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+		instAttVal = inst[cur->splittingAtt];
+		if(Tree::checkRange == true){
+			min = cur->minAttVal;
+			max = cur->maxAttVal;
+			if(instAttVal < min){
+				temp = randomD(instAttVal, max);
+				if(temp < min){
+					if(Tree::useVolumeForScore == true)
+						return ((cur->depth + 1) *
+							   -(cur->volume + log(temp - instAttVal) - log(max-instAttVal)));
+					else
+						return (cur->depth + 1);
+				}
+			}
+			if(instAttVal > max){
+				temp = randomD(min, instAttVal);
+				if(temp > max){
+					if(Tree::useVolumeForScore == true)
+						return ((cur->depth + 1) *
+							   -(cur->volume + log(instAttVal-temp) - log(instAttVal-min)));
+					else
+						return (cur->depth + 1);
+				}
+			}
+		}
+
+		if (instAttVal <= cur->splittingPoint)
 			cur = cur->leftChild;
 		else
 			cur = cur->rightChild;
