@@ -20,6 +20,8 @@ void OnlineIF::genInitTreeStructures(doubleframe *dataset){
 		sampleIndex.clear();
 		getSample(sampleIndex, nsample, rsample, windowSize);
 
+		Tree::initialezeLBandUB(dataset, sampleIndex);
+
 		// build trees
 		Tree *tree = new Tree();
 		tree->iTree(sampleIndex, dataset, maxheight);

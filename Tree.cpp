@@ -9,6 +9,8 @@
 
 bool Tree::checkRange = false;
 bool Tree::useVolumeForScore = false;
+std::vector<double> Tree::LB;
+std::vector<double> Tree::UB;
 
 void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &maxheight){
 	this->nodeSize = dIndex.size(); // Set size of the node
@@ -54,16 +56,22 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
 	leftChild = new Tree();
 	leftChild->parent = this;
 	leftChild->depth = this->depth + 1;
-	leftChild->volume = this->volume + log(this->splittingPoint - this->minAttVal)
-									 - log(this->maxAttVal - this->minAttVal);
+	leftChild->volume = this->volume + log(this->splittingPoint - Tree::LB[attribute])
+									 - log(Tree::UB[attribute] - Tree::LB[attribute]);
+	temp = Tree::UB[attribute];
+	Tree::UB[attribute] = this->splittingPoint;
 	leftChild->iTree(lnodeData, dt, maxheight);
+	Tree::UB[attribute] = temp;
 
 	rightChild = new Tree();
 	rightChild->parent = this;
 	rightChild->depth = this->depth + 1;
-	rightChild->volume = this->volume + log(this->maxAttVal - this->splittingPoint)
-									  - log(this->maxAttVal - this->minAttVal);
+	rightChild->volume = this->volume + log(Tree::UB[attribute] - this->splittingPoint)
+									  - log(Tree::UB[attribute] - Tree::LB[attribute]);
+	temp = Tree::LB[attribute];
+	Tree::LB[attribute] = this->splittingPoint;
 	rightChild->iTree(rnodeData, dt, maxheight);
+	Tree::LB[attribute] = temp;
 }
 
 /*
@@ -171,3 +179,20 @@ void Tree::printDepthAndNodeSize(std::ofstream &out){
 }
 
 
+void Tree::initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex){
+	// initialize LBs and UBs
+	Tree::LB.clear();
+	Tree::UB.clear();
+	double min, max, temp;
+	for(int j = 0; j < _df->ncol; ++j){
+		temp = _df->data[sampleIndex[0]][j];
+		min = max = temp;
+		for(unsigned int i = 1; i < sampleIndex.size(); ++i){
+			temp = _df->data[sampleIndex[i]][j];
+			if(min > temp) min = temp;
+			if(max < temp) max = temp;
+		}
+		Tree::LB.push_back(min);
+		Tree::UB.push_back(max);
+	}
+}

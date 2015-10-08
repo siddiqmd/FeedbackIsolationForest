@@ -44,6 +44,35 @@ void deletedoubleframe(doubleframe *df) {
 	delete df;
 }
 
+doubleframe *copyNormalInstances(const doubleframe *dtOrg, const ntstringframe* metadata) {
+	int cntNormal = 0, cnt = 0;
+	for(int i = 0; i < metadata->nrow; ++i){
+		if(!strcmp(metadata->data[i][0], "nominal"))
+			++cntNormal;
+	}
+	std::cout << "Number of normals: " << cntNormal << std::endl;
+	doubleframe *dtOn = new doubleframe();
+//	dtOn->colnames = dtOrg->colnames;
+	dtOn->column_major = dtOrg->column_major;
+	dtOn->ncol = dtOrg->ncol;
+	dtOn->nrow = cntNormal;
+//	dtOn->rownames = dtOrg->rownames;
+	dtOn->data = new double *[dtOn->nrow];
+	for (int ii = 0; ii < dtOn->nrow; ++ii) {
+		dtOn->data[ii] = new double[dtOn->ncol];
+	}
+	for (int ii = 0; ii < metadata->nrow; ++ii) {
+		if(!strcmp(metadata->data[ii][0], "nominal")){
+			for (int jj = 0; jj < dtOn->ncol; ++jj) {
+				dtOn->data[cnt][jj] = dtOrg->data[ii][jj];
+			}
+			++cnt;
+		}
+	}
+	return dtOn;
+}
+
+
 doubleframe *copyRows(const doubleframe *dtOrg, int from, int to) {
 	doubleframe *dtOn = new doubleframe();
 //	dtOn->colnames = dtOrg->colnames;
@@ -201,6 +230,8 @@ int main(int argc, char* argv[]) {
 	vector<double> scores;
 	int windowSize;
 
+	doubleframe *normalData = copyNormalInstances(dt, metadata);
+
 	for(int checkrange = 0; checkrange <= 1; ++checkrange){
 		Tree::checkRange = (checkrange == 1);
 		std::cout << "CheckRange = " << checkrange << std::endl;
@@ -212,16 +243,26 @@ int main(int argc, char* argv[]) {
 
 				// standard IsolationForest
 				IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-	//			sprintf(fName, "D:/ADAPT/OIF/Test/weather/trees/tree.v%d.r%d.txt", v, rep);
-	//			ofstream tree(fName);
-	//			iff.printStat(tree);
-	//			tree.close();
+
+//				sprintf(fName, "D:/ADAPT/OIF/Test/test/tree.v%d.r%d.c%d.txt", v, rep, checkrange);
+//				ofstream tree(fName);
+//				iff.printStat(tree);
+//				tree.close();
+//				if(1 == 1) return 0;
+
 				scores.clear();
 				scores = iff.AnomalyScore(dt);
 				sprintf(fName, "%s.OFF.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
 				printScoreToFile(scores, metadata, fName);
 
-				for (int wi = 0; wi < 5; ++wi) {
+				IsolationForest iff2(ntree, normalData, nsample, maxheight, rsample);
+				scores.clear();
+				scores = iff2.AnomalyScore(dt);
+				sprintf(fName, "%s.OFF.v%d.r%d.c%d.tnorm.csv", output_name, v, rep, checkrange);
+				printScoreToFile(scores, metadata, fName);
+				if(1 == 1) continue;
+
+				for (int wi = 2; wi < 3; ++wi) {
 					windowSize = WINSIZE[wi];
 					if (windowSize > dt->nrow)
 						windowSize = dt->nrow;
@@ -277,5 +318,6 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
+	deletedoubleframe(normalData);
 	return 0;
 }

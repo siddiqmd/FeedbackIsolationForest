@@ -23,6 +23,8 @@ class Tree {
 	int newNodeSize; // new attribute for online IF
 	double minAttVal, maxAttVal;
 	double volume;// store volume of this node in log scale
+	static std::vector<double> LB, UB;
+
 public:
 	static bool checkRange;
 	static bool useVolumeForScore;
@@ -54,6 +56,8 @@ public:
 	void renewNodeSize();
 	void update(const double inst[]);
 	void printDepthAndNodeSize(std::ofstream &out);
+
+	static void initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);
 };
 
 #endif /* TREE_H_ */
