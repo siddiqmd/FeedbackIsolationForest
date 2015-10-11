@@ -232,10 +232,10 @@ int main(int argc, char* argv[]) {
 
 	doubleframe *normalData = copyNormalInstances(dt, metadata);
 
-	for(int checkrange = 0; checkrange <= 1; ++checkrange){
+	for(int checkrange = 0; checkrange <= 0; ++checkrange){
 		Tree::checkRange = (checkrange == 1);
 		std::cout << "CheckRange = " << checkrange << std::endl;
-		for (int v = 0; v <= 1; ++v) {
+		for (int v = 0; v <= 0; ++v) {
 			Tree::useVolumeForScore = (v == 1);
 			std::cout << "Volume = " << v << std::endl;
 			for (int rep = 0; rep < 10; ++rep) {
@@ -244,16 +244,43 @@ int main(int argc, char* argv[]) {
 				// standard IsolationForest
 				IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
 
-//				sprintf(fName, "D:/ADAPT/OIF/Test/test/tree.v%d.r%d.c%d.txt", v, rep, checkrange);
+//				sprintf(fName, "D:/ADAPT/OIF/Test/LeastFrequentPattern/tree.v%d.r%d.c%d.csv",
+//						v, rep, checkrange);
+//				ofstream outtree(fName);
+//				iff.printPatternFreq(dt, 100, outtree);
+//				outtree.close();
+
+//				sprintf(fName, "D:/ADAPT/OIF/Test/LeastFrequentPattern/tree.v%d.r%d.c%d.txt",
+//						v, rep, checkrange);
 //				ofstream tree(fName);
 //				iff.printStat(tree);
 //				tree.close();
 //				if(1 == 1) return 0;
 
+				scores = iff.getScore(dt, 1);
+				sprintf(fName, "%s.OFF.p.min.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+				printScoreToFile(scores, metadata, fName);
+
+				scores = iff.getScore(dt, 2);
+				sprintf(fName, "%s.OFF.p.mean.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+				printScoreToFile(scores, metadata, fName);
+
+				scores = iff.getScore(dt, 3);
+				sprintf(fName, "%s.OFF.p.median.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+				printScoreToFile(scores, metadata, fName);
+
+				scores = iff.getScore(dt, 4);
+				sprintf(fName, "%s.OFF.p.max.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+				printScoreToFile(scores, metadata, fName);
+
 				scores.clear();
 				scores = iff.AnomalyScore(dt);
 				sprintf(fName, "%s.OFF.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
 				printScoreToFile(scores, metadata, fName);
+
+				if(1 == 1) continue;
+
+
 
 				IsolationForest iff2(ntree, normalData, nsample, maxheight, rsample);
 				scores.clear();

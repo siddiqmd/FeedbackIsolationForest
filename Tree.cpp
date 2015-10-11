@@ -74,6 +74,19 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
 	Tree::LB[attribute] = temp;
 }
 
+std::vector<double> Tree::getPatternScores(double *inst){
+	std::vector<double> ret;
+	Tree *cur = this;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+		ret.push_back(log(cur->nodeSize) - cur->volume);
+	}
+	return ret;
+}
+
 /*
  * takes an instance as vector of double
  */
@@ -176,6 +189,28 @@ void Tree::printDepthAndNodeSize(std::ofstream &out){
 //		this->leftChild->printDepthAndNodeSize(out);
 //		this->rightChild->printDepthAndNodeSize(out);
 //	}
+}
+
+void Tree::printPatternFreq(double inst[], int &tid, int &iid, std::ofstream &out){
+	Tree *cur = this;
+//	out << (iid+1) << ", "
+//		<< (tid+1) << ", "
+//		<< cur->depth << ", "
+//		<< cur->nodeSize << ", "
+//		<< exp(cur->volume) << ", "
+//		<< cur->nodeSize/exp(cur->volume) << std::endl;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+		out << (iid+1) << ", "
+			<< (tid+1) << ", "
+			<< cur->depth << ", "
+			<< cur->nodeSize << ", "
+			<< exp(cur->volume) << ", "
+			<< log(cur->nodeSize) - cur->volume << std::endl;
+	}
 }
 
 

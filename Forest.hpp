@@ -37,6 +37,8 @@ public:
 		}
 	}
 
+	std::vector<double> getScore(doubleframe *df, int type);
+
 	virtual double instanceScore(double *inst);
 	std::vector<double> AnomalyScore(doubleframe* df);
 	virtual std::vector<double> pathLength(double *inst);
@@ -49,5 +51,6 @@ public:
 	void getSample(std::vector<int> &sampleIndex, int nsample,
 			bool rSample, int nrow);
 	void printStat(std::ofstream &out);
+	void printPatternFreq(const doubleframe *df, int n, std::ofstream &out);
 };
 #endif /* FOREST_H_ */

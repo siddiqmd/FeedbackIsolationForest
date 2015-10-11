@@ -22,6 +22,37 @@ double Forest::instanceScore(double *inst) {
 
 }
 
+std::vector<double> Forest::getScore(doubleframe *df, int type){
+	std::vector<double> pscores[df->nrow];
+	for(int i = 0; i < df->nrow; ++i){
+		for(int t = 0; t < this->ntree; ++t){
+			std::vector<double> psi = this->trees[t]->getPatternScores(df->data[i]);
+			for(unsigned int j = 0; j < psi.size(); ++j)
+				pscores[i].push_back(psi[j]);
+		}
+	}
+	std::vector<double> res;
+	double min, max, sum;
+	for(int i = 0; i < df->nrow; ++i){
+		min = max = sum = pscores[i][0];
+		for(unsigned int j = 0; j < pscores[i].size(); ++j){
+			if(min > pscores[i][j]) min = pscores[i][j];
+			if(max < pscores[i][j]) max = pscores[i][j];
+			sum += pscores[i][j];
+		}
+		if(type == 1)// minimum
+			res.push_back(min);
+		else if(type == 2)// mean
+			res.push_back(sum/pscores[i].size());
+		else if(type == 3){// median
+			std::sort(pscores[i].begin(), pscores[i].end());
+			res.push_back(pscores[i][pscores[i].size()/2]);
+		}else// maximum
+			res.push_back(max);
+	}
+	return res;
+}
+
 /*
  * Score for  a set of dataframe in dataset
  */
@@ -107,6 +138,16 @@ void Forest::getSample(std::vector<int> &sampleIndex, int nsample,
 void Forest::printStat(std::ofstream &out){
 	for(int i = 0; i < this->ntree; ++i){
 		this->trees[i]->printDepthAndNodeSize(out);
-		out << "#####################################" << std::endl;
+		break;
+//		out << "#####################################" << std::endl;
+	}
+}
+
+void Forest::printPatternFreq(const doubleframe *df, int n, std::ofstream &out){
+	out << "inst_id, tree_id, depth, nodes, volume, log(nodes/vol))" << std::endl;
+	for(int iid = 0; iid < n; iid++){
+		for(int tid = 0; tid < this->ntree; tid++){
+			this->trees[tid]->printPatternFreq(df->data[iid], tid, iid, out);
+		}
 	}
 }

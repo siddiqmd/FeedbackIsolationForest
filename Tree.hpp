@@ -56,6 +56,9 @@ public:
 	void renewNodeSize();
 	void update(const double inst[]);
 	void printDepthAndNodeSize(std::ofstream &out);
+	void printPatternFreq(double inst[], int &tid, int &iid, std::ofstream &out);
+
+	std::vector<double> getPatternScores(double *inst);
 
 	static void initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);
 };
