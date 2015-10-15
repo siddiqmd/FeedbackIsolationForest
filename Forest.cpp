@@ -118,7 +118,7 @@ std::vector<double> Forest::importance(double *inst) {
 
 void Forest::getSample(std::vector<int> &sampleIndex, int nsample,
 		bool rsample, int nrow) {
-	if(nsample > nrow)
+	if(nsample > nrow || nsample <= 0)
 		nsample = nrow;
 	int *rndIdx = new int[nrow];
 	for(int i = 0; i < nrow; ++i)
@@ -144,7 +144,7 @@ void Forest::printStat(std::ofstream &out){
 }
 
 void Forest::printPatternFreq(const doubleframe *df, int n, std::ofstream &out){
-	out << "inst_id, tree_id, depth, nodes, volume, log(nodes/vol))" << std::endl;
+	out << "inst_id, tree_id, depth, nodes, volume, log_nodes_d_vol" << std::endl;
 	for(int iid = 0; iid < n; iid++){
 		for(int tid = 0; tid < this->ntree; tid++){
 			this->trees[tid]->printPatternFreq(df->data[iid], tid, iid, out);

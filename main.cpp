@@ -238,17 +238,18 @@ int main(int argc, char* argv[]) {
 		for (int v = 0; v <= 0; ++v) {
 			Tree::useVolumeForScore = (v == 1);
 			std::cout << "Volume = " << v << std::endl;
-			for (int rep = 0; rep < 10; ++rep) {
+			for (int rep = 0; rep < 5; ++rep) {
 				std::cout << "Rep = " << rep << std::endl;
 
 				// standard IsolationForest
 				IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
 
-//				sprintf(fName, "D:/ADAPT/OIF/Test/LeastFrequentPattern/tree.v%d.r%d.c%d.csv",
+//				sprintf(fName, "%s.stat.v%d.r%d.c%d.csv", output_name,
 //						v, rep, checkrange);
 //				ofstream outtree(fName);
 //				iff.printPatternFreq(dt, 100, outtree);
 //				outtree.close();
+//				if(1 == 1) return 0;
 
 //				sprintf(fName, "D:/ADAPT/OIF/Test/LeastFrequentPattern/tree.v%d.r%d.c%d.txt",
 //						v, rep, checkrange);
