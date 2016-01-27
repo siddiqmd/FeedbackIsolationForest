@@ -227,18 +227,18 @@ int main(int argc, char* argv[]) {
 
 	int WINSIZE[] = { 128, 256, 512, 1024, 2048 };
 	char fName[100];
-	vector<double> scores;
+	vector<double> scores;//, scoresMin, scoresAvg;
 	int windowSize;
 
-	doubleframe *normalData = copyNormalInstances(dt, metadata);
+//	doubleframe *normalData = copyNormalInstances(dt, metadata);
 
-	for(int checkrange = 0; checkrange <= 0; ++checkrange){
+	for(int checkrange = 0; checkrange <= 1; ++checkrange){
 		Tree::checkRange = (checkrange == 1);
 		std::cout << "CheckRange = " << checkrange << std::endl;
 		for (int v = 0; v <= 0; ++v) {
 			Tree::useVolumeForScore = (v == 1);
 			std::cout << "Volume = " << v << std::endl;
-			for (int rep = 0; rep < 5; ++rep) {
+			for (int rep = 0; rep < 10; ++rep) {
 				std::cout << "Rep = " << rep << std::endl;
 
 				// standard IsolationForest
@@ -265,32 +265,28 @@ int main(int argc, char* argv[]) {
 				scores = iff.getScore(dt, 2);
 				sprintf(fName, "%s.OFF.p.mean.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
 				printScoreToFile(scores, metadata, fName);
-
-				scores = iff.getScore(dt, 3);
-				sprintf(fName, "%s.OFF.p.median.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
-				printScoreToFile(scores, metadata, fName);
-
-				scores = iff.getScore(dt, 4);
-				sprintf(fName, "%s.OFF.p.max.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
-				printScoreToFile(scores, metadata, fName);
+				if(1 == 1) continue;
+//
+//				scores = iff.getScore(dt, 3);
+//				sprintf(fName, "%s.OFF.p.median.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+//				printScoreToFile(scores, metadata, fName);
+//
+//				scores = iff.getScore(dt, 4);
+//				sprintf(fName, "%s.OFF.p.max.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+//				printScoreToFile(scores, metadata, fName);
 
 				scores.clear();
 				scores = iff.AnomalyScore(dt);
 				sprintf(fName, "%s.OFF.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
 				printScoreToFile(scores, metadata, fName);
 
-				if(1 == 1) continue;
+//				IsolationForest iff2(ntree, normalData, nsample, maxheight, rsample);
+//				scores.clear();
+//				scores = iff2.AnomalyScore(dt);
+//				sprintf(fName, "%s.OFF.v%d.r%d.c%d.tnorm.csv", output_name, v, rep, checkrange);
+//				printScoreToFile(scores, metadata, fName);
 
-
-
-				IsolationForest iff2(ntree, normalData, nsample, maxheight, rsample);
-				scores.clear();
-				scores = iff2.AnomalyScore(dt);
-				sprintf(fName, "%s.OFF.v%d.r%d.c%d.tnorm.csv", output_name, v, rep, checkrange);
-				printScoreToFile(scores, metadata, fName);
-				if(1 == 1) continue;
-
-				for (int wi = 2; wi < 3; ++wi) {
+				for (int wi = 1; wi < 5; ++wi) {
 					windowSize = WINSIZE[wi];
 					if (windowSize > dt->nrow)
 						windowSize = dt->nrow;
@@ -304,18 +300,41 @@ int main(int argc, char* argv[]) {
 					for (int i = 0; i < windowSize; ++i) {
 						scores.push_back(oif.instanceScore(dtOn->data[i]));
 					}
+
 					deletedoubleframe(dtOn);
+//					scoresMin.clear();
+//					scoresAvg.clear();
 					for (int i = windowSize; i < dt->nrow; ++i) {
+//						if(i % windowSize == 0 || i == dt->nrow-1){
+//							dtOn = copyRows(dt, i-windowSize, i - 1);
+//							std::vector<double> tmpScores = oif.getScore(dtOn, 1);
+//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+//								scoresMin.push_back(tmpScores[jj]);
+//							}
+//							tmpScores = oif.getScore(dtOn, 2);
+//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+//								scoresAvg.push_back(tmpScores[jj]);
+//							}
+//							deletedoubleframe(dtOn);
+//						}
 						scores.push_back(oif.instanceScore(dt->data[i]));
 						oif.update(dt->data[i]);
 					}
 					sprintf(fName, "%s.FTS.v%d.w%d.r%d.c%d.csv", output_name, v,
 							WINSIZE[wi], rep, checkrange);
 					printScoreToFile(scores, metadata, fName);
+//					sprintf(fName, "%s.FTS.p.Min.v%d.w%d.r%d.c%d.csv", output_name, v,
+//							WINSIZE[wi], rep, checkrange);
+//					printScoreToFile(scoresMin, metadata, fName);
+//					sprintf(fName, "%s.FTS.p.Mean.v%d.w%d.r%d.c%d.csv", output_name, v,
+//							WINSIZE[wi], rep, checkrange);
+//					printScoreToFile(scoresAvg, metadata, fName);
 
 					// Adaptive Tree Structure
 					IsolationForest *if0 = NULL, *if1;
 					scores.clear();
+//					scoresMin.clear();
+//					scoresAvg.clear();
 					for (int st = 0; st <= dt->nrow; st += windowSize) {
 						int end = st + windowSize - 1;
 						if (end >= dt->nrow)
@@ -328,12 +347,28 @@ int main(int argc, char* argv[]) {
 							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
 								scores.push_back(tmpScores[jj]);
 							}
+//							tmpScores = if0->getScore(dtOn, 1);
+//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+//								scoresMin.push_back(tmpScores[jj]);
+//							}
+//							tmpScores = if0->getScore(dtOn, 2);
+//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+//								scoresAvg.push_back(tmpScores[jj]);
+//							}
 							delete if0;
 						} else {
 							std::vector<double> tmpScores = if1->AnomalyScore(dtOn);
 							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
 								scores.push_back(tmpScores[jj]);
 							}
+//							tmpScores = if1->getScore(dtOn, 1);
+//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+//								scoresMin.push_back(tmpScores[jj]);
+//							}
+//							tmpScores = if1->getScore(dtOn, 2);
+//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+//								scoresAvg.push_back(tmpScores[jj]);
+//							}
 						}
 						if0 = if1;
 						deletedoubleframe(dtOn);
@@ -342,10 +377,16 @@ int main(int argc, char* argv[]) {
 					sprintf(fName, "%s.ATS.v%d.w%d.r%d.c%d.csv", output_name, v,
 							WINSIZE[wi], rep, checkrange);
 					printScoreToFile(scores, metadata, fName);
+//					sprintf(fName, "%s.ATS.p.Min.v%d.w%d.r%d.c%d.csv", output_name, v,
+//							WINSIZE[wi], rep, checkrange);
+//					printScoreToFile(scoresMin, metadata, fName);
+//					sprintf(fName, "%s.ATS.p.Mean.v%d.w%d.r%d.c%d.csv", output_name, v,
+//							WINSIZE[wi], rep, checkrange);
+//					printScoreToFile(scoresAvg, metadata, fName);
 				}
 			}
 		}
 	}
-	deletedoubleframe(normalData);
+//	deletedoubleframe(normalData);
 	return 0;
 }

@@ -17,8 +17,12 @@ double Forest::getdepth(double* inst, Tree* tree) {
 double Forest::instanceScore(double *inst) {
 
 	double avgPathLength = mean(pathLength(inst));
+	double scores = pow(2, -avgPathLength / avgPL(this->nsample));
+	return scores;
+
+// unnormalized raw depth score
 //	double scores = pow(2, -avgPathLength / avgPL(this->nsample));
-	return avgPathLength;//scores;
+//	return avgPathLength;//scores;
 
 }
 

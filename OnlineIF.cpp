@@ -31,9 +31,8 @@ void OnlineIF::genInitTreeStructures(doubleframe *dataset){
 
 double OnlineIF::instanceScore(double *inst) {
 	double avgPathLength = mean(pathLength(inst));
-//	double scores = pow(2, -avgPathLength / avgPL(this->nsample));
-//	return scores;
-	return avgPathLength;
+	double scores = pow(2, -avgPathLength / avgPL(this->nsample));
+	return scores;
 }
 
 

@@ -84,8 +84,10 @@ std::vector<double> Tree::getPatternScores(double *inst){
 			cur = cur->leftChild;
 		else
 			cur = cur->rightChild;
+//		if(cur->nodeSize <= 0) break;
 		ret.push_back(log(cur->nodeSize) - cur->volume);
 	}
+//	if(ret.size() == 0) std::cout << "error";
 	return ret;
 }
 
