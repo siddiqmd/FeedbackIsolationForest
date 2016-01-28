@@ -26,6 +26,60 @@ double Forest::instanceScore(double *inst) {
 
 }
 
+void Forest::writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fName[]){
+	std::ofstream out(fName);
+	out << "algotype,groundtruth,instID,treeID,dlim,score\n";
+	for(int i = 0; i < dtTestNorm->nrow; ++i){
+		for(int t = 0; t < this->ntree; ++t){
+			std::vector<double> allDepthScores = this->trees[t]->getDepthEstforAllNodes(dtTestNorm->data[i]);
+			for(unsigned int dlim = 0; dlim < allDepthScores.size(); ++dlim)
+				out << "I" << ","
+					<< "N" << ","
+					<< i+1 << ","
+					<< t+1 << ","
+					<< dlim + 1 << ","
+					<< allDepthScores[dlim] << std::endl;
+		}
+	}
+	for(int i = 0; i < dtTestAnom->nrow; ++i){
+		for(int t = 0; t < this->ntree; ++t){
+			std::vector<double> allDepthScores = this->trees[t]->getDepthEstforAllNodes(dtTestAnom->data[i]);
+			for(unsigned int dlim = 0; dlim < allDepthScores.size(); ++dlim)
+				out << "I" << ","
+					<< "A" << ","
+					<< dtTestNorm->nrow+i+1 << ","
+					<< t+1 << ","
+					<< dlim + 1 << ","
+					<< allDepthScores[dlim] << std::endl;
+		}
+	}
+	for(int i = 0; i < dtTestNorm->nrow; ++i){
+		for(int t = 0; t < this->ntree; ++t){
+			std::vector<double> allDepthScores = this->trees[t]->getPatternScores(dtTestNorm->data[i]);
+			for(unsigned int dlim = 0; dlim < allDepthScores.size(); ++dlim)
+				out << "P" << ","
+					<< "N" << ","
+					<< i+1 << ","
+					<< t+1 << ","
+					<< dlim + 1 << ","
+					<< allDepthScores[dlim] << std::endl;
+		}
+	}
+	for(int i = 0; i < dtTestAnom->nrow; ++i){
+		for(int t = 0; t < this->ntree; ++t){
+			std::vector<double> allDepthScores = this->trees[t]->getPatternScores(dtTestAnom->data[i]);
+			for(unsigned int dlim = 0; dlim < allDepthScores.size(); ++dlim)
+				out << "P" << ","
+					<< "A" << ","
+					<< dtTestNorm->nrow+i+1 << ","
+					<< t+1 << ","
+					<< dlim + 1 << ","
+					<< allDepthScores[dlim] << std::endl;
+		}
+	}
+	out.close();
+}
+
 std::vector<double> Forest::getScore(doubleframe *df, int type){
 	std::vector<double> pscores[df->nrow];
 	for(int i = 0; i < df->nrow; ++i){

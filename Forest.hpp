@@ -38,6 +38,7 @@ public:
 	}
 
 	std::vector<double> getScore(doubleframe *df, int type);
+	void writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fName[]);
 
 	virtual double instanceScore(double *inst);
 	std::vector<double> AnomalyScore(doubleframe* df);

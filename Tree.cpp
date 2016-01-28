@@ -76,9 +76,32 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
 	Tree::LB[attribute] = temp;
 }
 
+std::vector<double> Tree::getDepthEstforAllNodes(double *inst){
+	std::vector<double> ret;
+	Tree *cur = this;
+	int cnt = 0;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+		ret.push_back(cur->depth + avgPL(cur->nodeSize));
+		++cnt;
+		if(cnt >= 10)
+			break;
+	}
+	while(cnt < 10){
+		ret.push_back(cur->depth + avgPL(cur->nodeSize));
+		cnt++;
+	}
+	return ret;
+}
+
+
 std::vector<double> Tree::getPatternScores(double *inst){
 	std::vector<double> ret;
 	Tree *cur = this;
+	int cnt = 0;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
 		if (inst[cur->splittingAtt] <= cur->splittingPoint)
 			cur = cur->leftChild;
@@ -86,8 +109,16 @@ std::vector<double> Tree::getPatternScores(double *inst){
 			cur = cur->rightChild;
 //		if(cur->nodeSize <= 0) break;
 		ret.push_back(log(cur->nodeSize) - cur->volume);
+		++cnt;
+		if(cnt >= 10)
+			break;
 	}
 //	if(ret.size() == 0) std::cout << "error";
+	while(cnt < 10){
+		ret.push_back(log(cur->nodeSize) - cur->volume);
+		cnt++;
+	}
+
 	return ret;
 }
 

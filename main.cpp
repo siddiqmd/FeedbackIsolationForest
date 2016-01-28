@@ -72,6 +72,53 @@ doubleframe *copyNormalInstances(const doubleframe *dtOrg, const ntstringframe* 
 	return dtOn;
 }
 
+doubleframe *copyAnomalyInstances(const doubleframe *dtOrg, const ntstringframe* metadata) {
+	int cntAnomaly = 0, cnt = 0;
+	for(int i = 0; i < metadata->nrow; ++i){
+		if(!strcmp(metadata->data[i][0], "anomaly"))
+			++cntAnomaly;
+	}
+	std::cout << "Number of anomaly: " << cntAnomaly << std::endl;
+	doubleframe *dtOn = new doubleframe();
+//	dtOn->colnames = dtOrg->colnames;
+	dtOn->column_major = dtOrg->column_major;
+	dtOn->ncol = dtOrg->ncol;
+	dtOn->nrow = cntAnomaly;
+//	dtOn->rownames = dtOrg->rownames;
+	dtOn->data = new double *[dtOn->nrow];
+	for (int ii = 0; ii < dtOn->nrow; ++ii) {
+		dtOn->data[ii] = new double[dtOn->ncol];
+	}
+	for (int ii = 0; ii < metadata->nrow; ++ii) {
+		if(!strcmp(metadata->data[ii][0], "anomaly")){
+			for (int jj = 0; jj < dtOn->ncol; ++jj) {
+				dtOn->data[cnt][jj] = dtOrg->data[ii][jj];
+			}
+			++cnt;
+		}
+	}
+	return dtOn;
+}
+
+doubleframe *copySelectedRows(const doubleframe *dtOrg, std::vector<int> idx, int from, int to) {
+	doubleframe *dtOn = new doubleframe();
+//	dtOn->colnames = dtOrg->colnames;
+	dtOn->column_major = dtOrg->column_major;
+	dtOn->ncol = dtOrg->ncol;
+	dtOn->nrow = to - from + 1;
+//	dtOn->rownames = dtOrg->rownames;
+	dtOn->data = new double *[dtOn->nrow];
+	for (int ii = 0; ii < dtOn->nrow; ++ii) {
+		dtOn->data[ii] = new double[dtOn->ncol];
+	}
+	for (int ii = 0; ii < dtOn->nrow; ++ii) {
+		for (int jj = 0; jj < dtOn->ncol; ++jj) {
+			dtOn->data[ii][jj] = dtOrg->data[idx[from + ii]][jj];
+		}
+	}
+	return dtOn;
+}
+
 
 doubleframe *copyRows(const doubleframe *dtOrg, int from, int to) {
 	doubleframe *dtOn = new doubleframe();
@@ -110,6 +157,59 @@ doubleframe *copyCols(const doubleframe *dtOrg, int from, int to) {
 	}
 	return dtOn;
 }
+
+std::vector<int> getRandomIdx(int nsample, int nrow) {
+	std::vector<int> sampleIndex;
+	if(nsample > nrow || nsample <= 0)
+		nsample = nrow;
+	int *rndIdx = new int[nrow];
+	for(int i = 0; i < nrow; ++i)
+		rndIdx[i] = i;
+	for(int i = 0; i < nsample; ++i){
+		int r = std::rand() % nrow;
+		int t = rndIdx[i];
+		rndIdx[i] = rndIdx[r];
+		rndIdx[r] = t;
+	}
+	for(int i = 0; i < nsample; ++i){
+		sampleIndex.push_back(rndIdx[i]);
+	}
+	delete []rndIdx;
+	return sampleIndex;
+}
+
+doubleframe *createTrainingSet(doubleframe *dtTrainNorm, doubleframe *dtTrainAnom, int numNorm, int numAnom){
+	doubleframe *dtOn = new doubleframe();
+
+	dtOn->column_major = dtTrainNorm->column_major;
+	dtOn->ncol = dtTrainNorm->ncol;
+	dtOn->nrow = numNorm + numAnom;
+
+	dtOn->data = new double *[dtOn->nrow];
+	for (int ii = 0; ii < dtOn->nrow; ++ii) {
+		dtOn->data[ii] = new double[dtOn->ncol];
+	}
+	std::vector<int> nidx = getRandomIdx(numNorm, dtTrainNorm->nrow);
+	std::vector<int> aidx = getRandomIdx(numAnom, dtTrainAnom->nrow);
+	int i = 0, j = 0;
+	for (int ii = 0; ii < dtOn->nrow; ++ii) {
+		int normal = std::rand() % (numNorm + numAnom);
+		if(normal >= numAnom && i >= (int)nidx.size())
+			normal = 0;
+		if(normal < numAnom && j >= (int)aidx.size())
+			normal = numAnom;
+		for (int jj = 0; jj < dtOn->ncol; ++jj) {
+			if(normal >= numAnom)
+				dtOn->data[ii][jj] = dtTrainNorm->data[nidx[i]][jj];
+			else
+				dtOn->data[ii][jj] = dtTrainAnom->data[aidx[j]][jj];
+		}
+		if(normal >= numAnom) ++i;
+		else ++j;
+	}
+	return dtOn;
+}
+
 
 int sidx = 0;
 struct sItem {
@@ -225,168 +325,244 @@ int main(int argc, char* argv[]) {
 		std::cout << "Using columns: " << dt->ncol << std::endl;
 	}
 
-	int WINSIZE[] = { 128, 256, 512, 1024, 2048 };
+//	for(int i = 0; i < 5; i++){
+//		std::vector<int> idx = getRandomIdx(5, 10);
+//		for(int j = 0; j < (int)idx.size(); j++)
+//			std::cout << idx[j] << " ";
+//		std::cout << "\n";
+//	}
+
+	// Code for generating learning curve data
+	std::cout << "CheckRange = " << Tree::checkRange << std::endl;
+	std::cout << "Volume = " << Tree::useVolumeForScore << std::endl;
+	doubleframe *dtNorm = copyNormalInstances(dt, metadata);
+	doubleframe *dtAnom = copyAnomalyInstances(dt, metadata);
+	std::vector<int> nidx = getRandomIdx((int)std::ceil(dtNorm->nrow * 0.2), dtNorm->nrow);
+	std::vector<int> aidx = getRandomIdx((int)std::ceil(dtAnom->nrow * 0.2), dtAnom->nrow);
+	doubleframe *dtTestNorm = copySelectedRows(dtNorm, nidx, 0, nidx.size()-1);
+	doubleframe *dtTestAnom = copySelectedRows(dtAnom, aidx, 0, aidx.size()-1);
+	std::cout << "# Test normals = " << dtTestNorm->nrow << std::endl;
+	std::cout << "# Test anomaly = " << dtTestAnom->nrow << std::endl;
+	std::vector<int> restnidx, restaidx;
+	bool track1[dtNorm->nrow], track2[dtAnom->nrow];
+	for(int i = 0; i < dtNorm->nrow; i++)
+		track1[i] = true;
+	for(int i = 0; i < (int)nidx.size(); ++i)
+		track1[nidx[i]] = false;
+	for(int i = 0; i < dtNorm->nrow; ++i){
+		if( track1[i] == true)
+			restnidx.push_back(i);
+	}
+	for(int i = 0; i < dtAnom->nrow; i++)
+		track2[i] = true;
+	for(int i = 0; i < (int)aidx.size(); ++i)
+		track2[aidx[i]] = false;
+	for(int i = 0; i < dtAnom->nrow; ++i){
+		if( track2[i] == true)
+			restaidx.push_back(i);
+	}
+	doubleframe *dtTrainNorm = copySelectedRows(dtNorm, restnidx, 0, restnidx.size()-1);
+	doubleframe *dtTrainAnom = copySelectedRows(dtAnom, restaidx, 0, restaidx.size()-1);
+	std::cout << "# Train normals = " << dtTrainNorm->nrow << std::endl;
+	std::cout << "# Train anomaly = " << dtTrainAnom->nrow << std::endl;
+	deletedoubleframe(dtNorm);
+	deletedoubleframe(dtAnom);
 	char fName[100];
-	vector<double> scores;//, scoresMin, scoresAvg;
-	int windowSize;
-
-//	doubleframe *normalData = copyNormalInstances(dt, metadata);
-
-	for(int checkrange = 0; checkrange <= 1; ++checkrange){
-		Tree::checkRange = (checkrange == 1);
-		std::cout << "CheckRange = " << checkrange << std::endl;
-		for (int v = 0; v <= 0; ++v) {
-			Tree::useVolumeForScore = (v == 1);
-			std::cout << "Volume = " << v << std::endl;
-			for (int rep = 0; rep < 10; ++rep) {
-				std::cout << "Rep = " << rep << std::endl;
-
-				// standard IsolationForest
-				IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-
-//				sprintf(fName, "%s.stat.v%d.r%d.c%d.csv", output_name,
-//						v, rep, checkrange);
-//				ofstream outtree(fName);
-//				iff.printPatternFreq(dt, 100, outtree);
-//				outtree.close();
-//				if(1 == 1) return 0;
-
-//				sprintf(fName, "D:/ADAPT/OIF/Test/LeastFrequentPattern/tree.v%d.r%d.c%d.txt",
-//						v, rep, checkrange);
-//				ofstream tree(fName);
-//				iff.printStat(tree);
-//				tree.close();
-//				if(1 == 1) return 0;
-
-				scores = iff.getScore(dt, 1);
-				sprintf(fName, "%s.OFF.p.min.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
-				printScoreToFile(scores, metadata, fName);
-
-				scores = iff.getScore(dt, 2);
-				sprintf(fName, "%s.OFF.p.mean.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
-				printScoreToFile(scores, metadata, fName);
-				if(1 == 1) continue;
-//
-//				scores = iff.getScore(dt, 3);
-//				sprintf(fName, "%s.OFF.p.median.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
-//				printScoreToFile(scores, metadata, fName);
-//
-//				scores = iff.getScore(dt, 4);
-//				sprintf(fName, "%s.OFF.p.max.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
-//				printScoreToFile(scores, metadata, fName);
-
-				scores.clear();
-				scores = iff.AnomalyScore(dt);
-				sprintf(fName, "%s.OFF.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
-				printScoreToFile(scores, metadata, fName);
-
-//				IsolationForest iff2(ntree, normalData, nsample, maxheight, rsample);
-//				scores.clear();
-//				scores = iff2.AnomalyScore(dt);
-//				sprintf(fName, "%s.OFF.v%d.r%d.c%d.tnorm.csv", output_name, v, rep, checkrange);
-//				printScoreToFile(scores, metadata, fName);
-
-				for (int wi = 1; wi < 5; ++wi) {
-					windowSize = WINSIZE[wi];
-					if (windowSize > dt->nrow)
-						windowSize = dt->nrow;
-					std::cout << "WS = " << windowSize << std::endl;
-
-					doubleframe *dtOn = copyRows(dt, 0, windowSize - 1);
-
-					// Fixed Tree
-					OnlineIF oif(ntree, dtOn, nsample, maxheight, rsample, windowSize);
-					scores.clear();
-					for (int i = 0; i < windowSize; ++i) {
-						scores.push_back(oif.instanceScore(dtOn->data[i]));
-					}
-
-					deletedoubleframe(dtOn);
-//					scoresMin.clear();
-//					scoresAvg.clear();
-					for (int i = windowSize; i < dt->nrow; ++i) {
-//						if(i % windowSize == 0 || i == dt->nrow-1){
-//							dtOn = copyRows(dt, i-windowSize, i - 1);
-//							std::vector<double> tmpScores = oif.getScore(dtOn, 1);
-//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-//								scoresMin.push_back(tmpScores[jj]);
-//							}
-//							tmpScores = oif.getScore(dtOn, 2);
-//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-//								scoresAvg.push_back(tmpScores[jj]);
-//							}
-//							deletedoubleframe(dtOn);
-//						}
-						scores.push_back(oif.instanceScore(dt->data[i]));
-						oif.update(dt->data[i]);
-					}
-					sprintf(fName, "%s.FTS.v%d.w%d.r%d.c%d.csv", output_name, v,
-							WINSIZE[wi], rep, checkrange);
-					printScoreToFile(scores, metadata, fName);
-//					sprintf(fName, "%s.FTS.p.Min.v%d.w%d.r%d.c%d.csv", output_name, v,
-//							WINSIZE[wi], rep, checkrange);
-//					printScoreToFile(scoresMin, metadata, fName);
-//					sprintf(fName, "%s.FTS.p.Mean.v%d.w%d.r%d.c%d.csv", output_name, v,
-//							WINSIZE[wi], rep, checkrange);
-//					printScoreToFile(scoresAvg, metadata, fName);
-
-					// Adaptive Tree Structure
-					IsolationForest *if0 = NULL, *if1;
-					scores.clear();
-//					scoresMin.clear();
-//					scoresAvg.clear();
-					for (int st = 0; st <= dt->nrow; st += windowSize) {
-						int end = st + windowSize - 1;
-						if (end >= dt->nrow)
-							end = dt->nrow - 1;
-						doubleframe *dtOn = copyRows(dt, st, end);
-
-						if1 = new IsolationForest(ntree, dtOn, nsample, maxheight, rsample);
-						if (if0 != NULL) {
-							std::vector<double> tmpScores = if0->AnomalyScore(dtOn);
-							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-								scores.push_back(tmpScores[jj]);
-							}
-//							tmpScores = if0->getScore(dtOn, 1);
-//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-//								scoresMin.push_back(tmpScores[jj]);
-//							}
-//							tmpScores = if0->getScore(dtOn, 2);
-//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-//								scoresAvg.push_back(tmpScores[jj]);
-//							}
-							delete if0;
-						} else {
-							std::vector<double> tmpScores = if1->AnomalyScore(dtOn);
-							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-								scores.push_back(tmpScores[jj]);
-							}
-//							tmpScores = if1->getScore(dtOn, 1);
-//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-//								scoresMin.push_back(tmpScores[jj]);
-//							}
-//							tmpScores = if1->getScore(dtOn, 2);
-//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
-//								scoresAvg.push_back(tmpScores[jj]);
-//							}
-						}
-						if0 = if1;
-						deletedoubleframe(dtOn);
-					}
-					delete if0;
-					sprintf(fName, "%s.ATS.v%d.w%d.r%d.c%d.csv", output_name, v,
-							WINSIZE[wi], rep, checkrange);
-					printScoreToFile(scores, metadata, fName);
-//					sprintf(fName, "%s.ATS.p.Min.v%d.w%d.r%d.c%d.csv", output_name, v,
-//							WINSIZE[wi], rep, checkrange);
-//					printScoreToFile(scoresMin, metadata, fName);
-//					sprintf(fName, "%s.ATS.p.Mean.v%d.w%d.r%d.c%d.csv", output_name, v,
-//							WINSIZE[wi], rep, checkrange);
-//					printScoreToFile(scoresAvg, metadata, fName);
-				}
-			}
+	double total = (dtTrainNorm->nrow + dtTrainAnom->nrow);
+	for(int s = 16; s < total; s *= 2){
+		std::cout << "s = " << s << std::endl;
+		int numNorm = (int)floor(s * dtTrainNorm->nrow / total);
+		int numAnom = (int)ceil(s * dtTrainAnom->nrow / total);
+		if(numNorm + numAnom > s)
+			numNorm--;
+		else if(numNorm + numAnom < s)
+			numNorm++;
+		std::cout << "# normals = " << numNorm << std::endl;
+		std::cout << "# anomaly = " << numAnom << std::endl;
+		if(numNorm + numAnom != s)
+			std::cout << "Error 1" << std::endl;
+		for (int rep = 0; rep < 10; ++rep) {
+			std::cout << "rep = " << rep << std::endl;
+			doubleframe *trainSet = createTrainingSet(dtTrainNorm, dtTrainAnom, numNorm, numAnom);
+			sprintf(fName, "%s.%d.%d.csv", output_name, s, rep);
+//			ofstream out(fName);
+//			for (int i = 0; i < trainSet->nrow; ++i) {
+//				for (int j = 0; j < trainSet->ncol; ++j) {
+//					out << "," << trainSet->data[i][j];
+//				}
+//				out << std::endl;
+//			}
+//			out << std::endl;
+//			out.close();
+			IsolationForest iff(ntree, trainSet, nsample, maxheight, rsample);
+			iff.writeScoreDatabase(dtTestNorm, dtTestAnom, fName);
+			deletedoubleframe(trainSet);
 		}
 	}
-//	deletedoubleframe(normalData);
+
+
+//	int WINSIZE[] = { 128, 256, 512, 1024, 2048 };
+//	char fName[100];
+//	vector<double> scores;//, scoresMin, scoresAvg;
+//	int windowSize;
+//
+////	doubleframe *normalData = copyNormalInstances(dt, metadata);
+//
+//	for(int checkrange = 0; checkrange <= 0; ++checkrange){
+//		Tree::checkRange = (checkrange == 1);
+////		std::cout << "CheckRange = " << checkrange << std::endl;
+//		for (int v = 0; v <= 0; ++v) {
+//			Tree::useVolumeForScore = (v == 1);
+////			std::cout << "Volume = " << v << std::endl;
+//			for (int rep = 0; rep < 1; ++rep) {
+//				std::cout << "Rep = " << rep << std::endl;
+//
+//				// standard IsolationForest
+//				IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
+//
+////				sprintf(fName, "%s.stat.v%d.r%d.c%d.csv", output_name,
+////						v, rep, checkrange);
+////				ofstream outtree(fName);
+////				iff.printPatternFreq(dt, 100, outtree);
+////				outtree.close();
+////				if(1 == 1) return 0;
+//
+////				sprintf(fName, "D:/ADAPT/OIF/Test/LeastFrequentPattern/tree.v%d.r%d.c%d.txt",
+////						v, rep, checkrange);
+////				ofstream tree(fName);
+////				iff.printStat(tree);
+////				tree.close();
+////				if(1 == 1) return 0;
+//
+//				scores = iff.getScore(dt, 1);
+//				sprintf(fName, "%s.OFF.p.min.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+//				printScoreToFile(scores, metadata, fName);
+//
+//				scores = iff.getScore(dt, 2);
+//				sprintf(fName, "%s.OFF.p.mean.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+//				printScoreToFile(scores, metadata, fName);
+////				if(1 == 1) continue;
+////
+////				scores = iff.getScore(dt, 3);
+////				sprintf(fName, "%s.OFF.p.median.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+////				printScoreToFile(scores, metadata, fName);
+////
+////				scores = iff.getScore(dt, 4);
+////				sprintf(fName, "%s.OFF.p.max.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+////				printScoreToFile(scores, metadata, fName);
+//
+//				scores.clear();
+//				scores = iff.AnomalyScore(dt);
+//				sprintf(fName, "%s.OFF.v%d.r%d.c%d.csv", output_name, v, rep, checkrange);
+//				printScoreToFile(scores, metadata, fName);
+//
+////				IsolationForest iff2(ntree, normalData, nsample, maxheight, rsample);
+////				scores.clear();
+////				scores = iff2.AnomalyScore(dt);
+////				sprintf(fName, "%s.OFF.v%d.r%d.c%d.tnorm.csv", output_name, v, rep, checkrange);
+////				printScoreToFile(scores, metadata, fName);
+//
+//				for (int wi = 1; wi < 5; ++wi) {
+//					windowSize = WINSIZE[wi];
+//					if (windowSize > dt->nrow)
+//						windowSize = dt->nrow;
+//					std::cout << "WS = " << windowSize << std::endl;
+//
+//					doubleframe *dtOn = copyRows(dt, 0, windowSize - 1);
+//
+//					// Fixed Tree
+//					OnlineIF oif(ntree, dtOn, nsample, maxheight, rsample, windowSize);
+//					scores.clear();
+//					for (int i = 0; i < windowSize; ++i) {
+//						scores.push_back(oif.instanceScore(dtOn->data[i]));
+//					}
+//
+//					deletedoubleframe(dtOn);
+////					scoresMin.clear();
+////					scoresAvg.clear();
+//					for (int i = windowSize; i < dt->nrow; ++i) {
+////						if(i % windowSize == 0 || i == dt->nrow-1){
+////							dtOn = copyRows(dt, i-windowSize, i - 1);
+////							std::vector<double> tmpScores = oif.getScore(dtOn, 1);
+////							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+////								scoresMin.push_back(tmpScores[jj]);
+////							}
+////							tmpScores = oif.getScore(dtOn, 2);
+////							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+////								scoresAvg.push_back(tmpScores[jj]);
+////							}
+////							deletedoubleframe(dtOn);
+////						}
+//						scores.push_back(oif.instanceScore(dt->data[i]));
+//						oif.update(dt->data[i]);
+//					}
+//					sprintf(fName, "%s.FTS.v%d.w%d.r%d.c%d.csv", output_name, v,
+//							WINSIZE[wi], rep, checkrange);
+//					printScoreToFile(scores, metadata, fName);
+////					sprintf(fName, "%s.FTS.p.Min.v%d.w%d.r%d.c%d.csv", output_name, v,
+////							WINSIZE[wi], rep, checkrange);
+////					printScoreToFile(scoresMin, metadata, fName);
+////					sprintf(fName, "%s.FTS.p.Mean.v%d.w%d.r%d.c%d.csv", output_name, v,
+////							WINSIZE[wi], rep, checkrange);
+////					printScoreToFile(scoresAvg, metadata, fName);
+//
+//					// Adaptive Tree Structure
+//					IsolationForest *if0 = NULL, *if1;
+//					scores.clear();
+////					scoresMin.clear();
+////					scoresAvg.clear();
+//					for (int st = 0; st <= dt->nrow; st += windowSize) {
+//						int end = st + windowSize - 1;
+//						if (end >= dt->nrow)
+//							end = dt->nrow - 1;
+//						doubleframe *dtOn = copyRows(dt, st, end);
+//
+//						if1 = new IsolationForest(ntree, dtOn, nsample, maxheight, rsample);
+//						if (if0 != NULL) {
+//							std::vector<double> tmpScores = if0->AnomalyScore(dtOn);
+//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+//								scores.push_back(tmpScores[jj]);
+//							}
+////							tmpScores = if0->getScore(dtOn, 1);
+////							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+////								scoresMin.push_back(tmpScores[jj]);
+////							}
+////							tmpScores = if0->getScore(dtOn, 2);
+////							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+////								scoresAvg.push_back(tmpScores[jj]);
+////							}
+//							delete if0;
+//						} else {
+//							std::vector<double> tmpScores = if1->AnomalyScore(dtOn);
+//							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+//								scores.push_back(tmpScores[jj]);
+//							}
+////							tmpScores = if1->getScore(dtOn, 1);
+////							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+////								scoresMin.push_back(tmpScores[jj]);
+////							}
+////							tmpScores = if1->getScore(dtOn, 2);
+////							for (int jj = 0; jj < (int) tmpScores.size(); ++jj) {
+////								scoresAvg.push_back(tmpScores[jj]);
+////							}
+//						}
+//						if0 = if1;
+//						deletedoubleframe(dtOn);
+//					}
+//					delete if0;
+//					sprintf(fName, "%s.ATS.v%d.w%d.r%d.c%d.csv", output_name, v,
+//							WINSIZE[wi], rep, checkrange);
+//					printScoreToFile(scores, metadata, fName);
+////					sprintf(fName, "%s.ATS.p.Min.v%d.w%d.r%d.c%d.csv", output_name, v,
+////							WINSIZE[wi], rep, checkrange);
+////					printScoreToFile(scoresMin, metadata, fName);
+////					sprintf(fName, "%s.ATS.p.Mean.v%d.w%d.r%d.c%d.csv", output_name, v,
+////							WINSIZE[wi], rep, checkrange);
+////					printScoreToFile(scoresAvg, metadata, fName);
+//				}
+//			}
+//		}
+//	}
+////	deletedoubleframe(normalData);
 	return 0;
 }
