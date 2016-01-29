@@ -325,76 +325,76 @@ int main(int argc, char* argv[]) {
 		std::cout << "Using columns: " << dt->ncol << std::endl;
 	}
 	char fName[100];
-	std::cout << dt->nrow << " " << dt->ncol << std::endl;
-	vector<int> iforest, pattern;
-	int maxInstId = 0;
-	for(int i = 0; i < dt->nrow; ++i){
-		if(strcmp(metadata->data[i][0], "I") == 0)
-			iforest.push_back(i);
-		else
-			pattern.push_back(i);
-		if(dt->data[i][0] > maxInstId)
-			maxInstId = (int)dt->data[i][0];
-	}
-	{
-	vector<int> ifdepth[10];
-	for(int i = 0; i < (int)iforest.size(); ++i){
-		ifdepth[(int)dt->data[iforest[i]][2]-1].push_back(iforest[i]);
-	}
-	std::cout << "maxInstId = " << maxInstId << std::endl;
-	for(int d = 0; d < 10; d++){
-//		std::cout << d << std::endl;
-		vector<int> instId[maxInstId];
-		for(int i = 0; i < (int)ifdepth[d].size(); ++i){
-			instId[(int)(dt->data[ifdepth[d][i]][0])-1].push_back(ifdepth[d][i]);
-		}
-		int tt = strlen(pargs->input_name)-1;
-		while(pargs->input_name[tt] != '/' && pargs->input_name[tt] !='\\')
-			--tt;
-		sprintf(fName, "IF.d%d.%s", d+1, &pargs->input_name[tt+1]);
-//		std::cout << fName << endl;
-		std::ofstream out(fName);
-		out << "groundtruth,score" << endl;
-		for(int i = 0; i < maxInstId; ++i){
-			double sum = 0;
-			for(int j = 0; j < (int)instId[i].size(); ++j){
-				sum += dt->data[instId[i][j]][3];
-			}
-			out << metadata->data[ instId[i][0] ][1]  << "," << sum/instId[i].size() << std::endl;
-		}
-		out.close();
-	}
-	}
-	{
-	vector<int> ifdepth[10];
-	for(int i = 0; i < (int)pattern.size(); ++i){
-		ifdepth[(int)dt->data[pattern[i]][2]-1].push_back(pattern[i]);
-	}
-	std::cout << "maxInstId = " << maxInstId << std::endl;
-	for(int d = 0; d < 10; d++){
-//		std::cout << d << std::endl;
-		vector<int> instId[maxInstId];
-		for(int i = 0; i < (int)ifdepth[d].size(); ++i){
-			instId[(int)(dt->data[ifdepth[d][i]][0])-1].push_back(ifdepth[d][i]);
-		}
-		int tt = strlen(pargs->input_name)-1;
-		while(pargs->input_name[tt] !='/' && pargs->input_name[tt] != '\\')
-			--tt;
-		sprintf(fName, "PA.d%d.%s", d+1, &pargs->input_name[tt+1]);
-//		std::cout << fName << endl;
-		std::ofstream out(fName);
-		out << "groundtruth,score" << endl;
-		for(int i = 0; i < maxInstId; ++i){
-			double sum = 0;
-			for(int j = 0; j < (int)instId[i].size(); ++j){
-				sum += dt->data[instId[i][j]][3];
-			}
-			out << metadata->data[ instId[i][0] ][1]  << "," << sum/instId[i].size() << std::endl;
-		}
-		out.close();
-	}
-	}
-	if(1 == 1) return 0;
+//	std::cout << dt->nrow << " " << dt->ncol << std::endl;
+//	vector<int> iforest, pattern;
+//	int maxInstId = 0;
+//	for(int i = 0; i < dt->nrow; ++i){
+//		if(strcmp(metadata->data[i][0], "I") == 0)
+//			iforest.push_back(i);
+//		else
+//			pattern.push_back(i);
+//		if(dt->data[i][0] > maxInstId)
+//			maxInstId = (int)dt->data[i][0];
+//	}
+//	{
+//	vector<int> ifdepth[10];
+//	for(int i = 0; i < (int)iforest.size(); ++i){
+//		ifdepth[(int)dt->data[iforest[i]][2]-1].push_back(iforest[i]);
+//	}
+//	std::cout << "maxInstId = " << maxInstId << std::endl;
+//	for(int d = 0; d < 10; d++){
+////		std::cout << d << std::endl;
+//		vector<int> instId[maxInstId];
+//		for(int i = 0; i < (int)ifdepth[d].size(); ++i){
+//			instId[(int)(dt->data[ifdepth[d][i]][0])-1].push_back(ifdepth[d][i]);
+//		}
+//		int tt = strlen(pargs->input_name)-1;
+//		while(pargs->input_name[tt] != '/' && pargs->input_name[tt] !='\\')
+//			--tt;
+//		sprintf(fName, "IF.d%d.%s", d+1, &pargs->input_name[tt+1]);
+////		std::cout << fName << endl;
+//		std::ofstream out(fName);
+//		out << "groundtruth,score" << endl;
+//		for(int i = 0; i < maxInstId; ++i){
+//			double sum = 0;
+//			for(int j = 0; j < (int)instId[i].size(); ++j){
+//				sum += dt->data[instId[i][j]][3];
+//			}
+//			out << metadata->data[ instId[i][0] ][1]  << "," << sum/instId[i].size() << std::endl;
+//		}
+//		out.close();
+//	}
+//	}
+//	{
+//	vector<int> ifdepth[10];
+//	for(int i = 0; i < (int)pattern.size(); ++i){
+//		ifdepth[(int)dt->data[pattern[i]][2]-1].push_back(pattern[i]);
+//	}
+//	std::cout << "maxInstId = " << maxInstId << std::endl;
+//	for(int d = 0; d < 10; d++){
+////		std::cout << d << std::endl;
+//		vector<int> instId[maxInstId];
+//		for(int i = 0; i < (int)ifdepth[d].size(); ++i){
+//			instId[(int)(dt->data[ifdepth[d][i]][0])-1].push_back(ifdepth[d][i]);
+//		}
+//		int tt = strlen(pargs->input_name)-1;
+//		while(pargs->input_name[tt] !='/' && pargs->input_name[tt] != '\\')
+//			--tt;
+//		sprintf(fName, "PA.d%d.%s", d+1, &pargs->input_name[tt+1]);
+////		std::cout << fName << endl;
+//		std::ofstream out(fName);
+//		out << "groundtruth,score" << endl;
+//		for(int i = 0; i < maxInstId; ++i){
+//			double sum = 0;
+//			for(int j = 0; j < (int)instId[i].size(); ++j){
+//				sum += dt->data[instId[i][j]][3];
+//			}
+//			out << metadata->data[ instId[i][0] ][1]  << "," << sum/instId[i].size() << std::endl;
+//		}
+//		out.close();
+//	}
+//	}
+//	if(1 == 1) return 0;
 //	for(int i = 0; i < 5; i++){
 //		std::vector<int> idx = getRandomIdx(5, 10);
 //		for(int j = 0; j < (int)idx.size(); j++)
@@ -454,7 +454,7 @@ int main(int argc, char* argv[]) {
 		for (int rep = 0; rep < 10; ++rep) {
 			std::cout << "rep = " << rep << std::endl;
 			doubleframe *trainSet = createTrainingSet(dtTrainNorm, dtTrainAnom, numNorm, numAnom);
-			sprintf(fName, "%s.%d.%d.csv", output_name, s, rep);
+			sprintf(fName, "%s.%d.%d", output_name, s, rep);
 //			ofstream out(fName);
 //			for (int i = 0; i < trainSet->nrow; ++i) {
 //				for (int j = 0; j < trainSet->ncol; ++j) {

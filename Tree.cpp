@@ -76,23 +76,32 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
 	Tree::LB[attribute] = temp;
 }
 
-std::vector<double> Tree::getDepthEstforAllNodes(double *inst){
-	std::vector<double> ret;
+double Tree::getScoreAtDepth(double *inst, int depLim){
+	double ret = 0;
 	Tree *cur = this;
-	int cnt = 0;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
 		if (inst[cur->splittingAtt] <= cur->splittingPoint)
 			cur = cur->leftChild;
 		else
 			cur = cur->rightChild;
-		ret.push_back(cur->depth + avgPL(cur->nodeSize));
-		++cnt;
-		if(cnt >= 10)
-			break;
+		ret = cur->depth + avgPL(cur->nodeSize);
+		if(cur->depth == depLim)
+			return ret;
 	}
-	while(cnt < 10){
-		ret.push_back(cur->depth + avgPL(cur->nodeSize));
-		cnt++;
+	return ret;
+}
+
+double Tree::getPatternScoreAtDepth(double *inst, int depLim){
+	double ret = 0;
+	Tree *cur = this;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+		ret = log(cur->nodeSize) - cur->volume;
+		if(cur->depth == depLim)
+			return ret;
 	}
 	return ret;
 }

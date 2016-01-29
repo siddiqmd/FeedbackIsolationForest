@@ -59,7 +59,8 @@ public:
 	void printPatternFreq(double inst[], int &tid, int &iid, std::ofstream &out);
 
 	std::vector<double> getPatternScores(double *inst);
-	std::vector<double> getDepthEstforAllNodes(double *inst);
+	double getScoreAtDepth(double *inst, int depLim);
+	double getPatternScoreAtDepth(double *inst, int depLim);
 
 	static void initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);
 };

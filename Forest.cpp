@@ -26,58 +26,51 @@ double Forest::instanceScore(double *inst) {
 
 }
 
-void Forest::writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fName[]){
-	std::ofstream out(fName);
-	out << "algotype,groundtruth,instID,treeID,dlim,score\n";
-	for(int i = 0; i < dtTestNorm->nrow; ++i){
-		for(int t = 0; t < this->ntree; ++t){
-			std::vector<double> allDepthScores = this->trees[t]->getDepthEstforAllNodes(dtTestNorm->data[i]);
-			for(unsigned int dlim = 0; dlim < allDepthScores.size(); ++dlim)
-				out << "I" << ","
-					<< "N" << ","
-					<< i+1 << ","
-					<< t+1 << ","
-					<< dlim + 1 << ","
-					<< allDepthScores[dlim] << std::endl;
+void Forest::writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fNamesuf[]){
+	char fNameIF[100],fNamePA[100],fNamePM[100];
+	double sumIF, sumPA, minPM, temp;
+	for(int depLim = 1; depLim <= 10; ++depLim){
+		sprintf(fNameIF, "%s.IF.d%d.csv", fNamesuf, depLim);
+		sprintf(fNamePA, "%s.PA.d%d.csv", fNamesuf, depLim);
+		sprintf(fNamePM, "%s.PM.d%d.csv", fNamesuf, depLim);
+		std::ofstream outIF(fNameIF), outPA(fNamePA), outPM(fNamePM);
+		outIF << "groundtruth,score\n";
+		outPA << "groundtruth,score\n";
+		outPM << "groundtruth,score\n";
+		for(int i = 0; i < dtTestNorm->nrow; ++i){
+			sumIF = 0;
+			sumPA = 0;
+			minPM = this->trees[0]->getPatternScoreAtDepth(dtTestNorm->data[i], depLim);
+			for(int t = 0; t < this->ntree; ++t){
+				sumIF += this->trees[t]->getScoreAtDepth(dtTestNorm->data[i], depLim);
+				temp = this->trees[t]->getPatternScoreAtDepth(dtTestNorm->data[i], depLim);
+				sumPA += temp;
+				if(temp < minPM)
+					minPM = temp;
+			}
+			outIF << "N," << sumIF/this->ntree << std::endl;
+			outPA << "N," << sumPA/this->ntree << std::endl;
+			outPM << "N," << minPM << std::endl;
 		}
-	}
-	for(int i = 0; i < dtTestAnom->nrow; ++i){
-		for(int t = 0; t < this->ntree; ++t){
-			std::vector<double> allDepthScores = this->trees[t]->getDepthEstforAllNodes(dtTestAnom->data[i]);
-			for(unsigned int dlim = 0; dlim < allDepthScores.size(); ++dlim)
-				out << "I" << ","
-					<< "A" << ","
-					<< dtTestNorm->nrow+i+1 << ","
-					<< t+1 << ","
-					<< dlim + 1 << ","
-					<< allDepthScores[dlim] << std::endl;
+		for(int i = 0; i < dtTestAnom->nrow; ++i){
+			sumIF = 0;
+			sumPA = 0;
+			minPM = this->trees[0]->getPatternScoreAtDepth(dtTestAnom->data[i], depLim);
+			for(int t = 0; t < this->ntree; ++t){
+				sumIF += this->trees[t]->getScoreAtDepth(dtTestAnom->data[i], depLim);
+				temp = this->trees[t]->getPatternScoreAtDepth(dtTestAnom->data[i], depLim);
+				sumPA += temp;
+				if(temp < minPM)
+					minPM = temp;
+			}
+			outIF << "A," << sumIF/this->ntree << std::endl;
+			outPA << "A," << sumPA/this->ntree << std::endl;
+			outPM << "A," << minPM << std::endl;
 		}
+		outIF.close();
+		outPA.close();
+		outPM.close();
 	}
-	for(int i = 0; i < dtTestNorm->nrow; ++i){
-		for(int t = 0; t < this->ntree; ++t){
-			std::vector<double> allDepthScores = this->trees[t]->getPatternScores(dtTestNorm->data[i]);
-			for(unsigned int dlim = 0; dlim < allDepthScores.size(); ++dlim)
-				out << "P" << ","
-					<< "N" << ","
-					<< i+1 << ","
-					<< t+1 << ","
-					<< dlim + 1 << ","
-					<< allDepthScores[dlim] << std::endl;
-		}
-	}
-	for(int i = 0; i < dtTestAnom->nrow; ++i){
-		for(int t = 0; t < this->ntree; ++t){
-			std::vector<double> allDepthScores = this->trees[t]->getPatternScores(dtTestAnom->data[i]);
-			for(unsigned int dlim = 0; dlim < allDepthScores.size(); ++dlim)
-				out << "P" << ","
-					<< "A" << ","
-					<< dtTestNorm->nrow+i+1 << ","
-					<< t+1 << ","
-					<< dlim + 1 << ","
-					<< allDepthScores[dlim] << std::endl;
-		}
-	}
-	out.close();
 }
 
 std::vector<double> Forest::getScore(doubleframe *df, int type){
