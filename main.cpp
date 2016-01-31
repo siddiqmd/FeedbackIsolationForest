@@ -296,7 +296,7 @@ int main(int argc, char* argv[]) {
 //	bool verbose = pargs->verbose;
 	bool rsample = nsample != 0;
 	int useColumns = 0;
-	int trainsamplesize = pargs->columns;//c for train sample size option
+	int trainsampIdx = pargs->columns;//c for train sample size option
 //	std::cout << useColumns << std::endl;
 //	int windowSize = pargs->window_size;
 
@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
 	std::vector<int> aidx = getRandomIdx((int)std::ceil(dtAnom->nrow * 0.2), dtAnom->nrow);
 	std::cout << "some initial random indices of test data:\n";
 	for(int i = 0; i < 10; i++){
-		if(i < nidx.size() && i < aidx.size())
+		if(i < (int)nidx.size() && i < (int)aidx.size())
 			std::cout << nidx[i] << "\t" << aidx[i] << std::endl;
 	}
 	doubleframe *dtTestNorm = copySelectedRows(dtNorm, nidx, 0, nidx.size()-1);
@@ -444,10 +444,11 @@ int main(int argc, char* argv[]) {
 	std::cout << "# Train anomaly = " << dtTrainAnom->nrow << std::endl;
 	deletedoubleframe(dtNorm);
 	deletedoubleframe(dtAnom);
-
+//	int trainsamplesize[11] = {0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384};
+	int trainsamplesize[11] = {0, 10, 20, 40, 60, 80, 100, 200, 1000, 10000, 100000};
 	double total = (dtTrainNorm->nrow + dtTrainAnom->nrow);
 //	for(int s = 16; s < total; s *= 2)
-	{	int s = trainsamplesize;
+	{	int s = trainsamplesize[trainsampIdx];
 		std::cout << "s = " << s << std::endl;
 		int numNorm = (int)floor(s * (dtTrainNorm->nrow / total));
 		int numAnom = (int)ceil(s * (dtTrainAnom->nrow / total));
@@ -459,7 +460,7 @@ int main(int argc, char* argv[]) {
 		std::cout << "# anomaly = " << numAnom << std::endl;
 		if(numNorm + numAnom != s)
 			std::cout << "Error 1" << std::endl;
-		for (int rep = 0; rep < 10; ++rep) {
+		for (int rep = 0; rep < 50; ++rep) {
 			std::cout << "rep = " << rep << std::endl;
 			doubleframe *trainSet = createTrainingSet(dtTrainNorm, dtTrainAnom, numNorm, numAnom);
 			sprintf(fName, "%s.%d.%d", output_name, s, rep);
