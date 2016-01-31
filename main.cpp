@@ -295,7 +295,8 @@ int main(int argc, char* argv[]) {
 	bool header = pargs->header;
 //	bool verbose = pargs->verbose;
 	bool rsample = nsample != 0;
-	int useColumns = pargs->columns;
+	int useColumns = 0;
+	int trainsamplesize = pargs->columns;//c for train sample size option
 //	std::cout << useColumns << std::endl;
 //	int windowSize = pargs->window_size;
 
@@ -380,20 +381,21 @@ int main(int argc, char* argv[]) {
 //		int tt = strlen(pargs->input_name)-1;
 //		while(pargs->input_name[tt] !='/' && pargs->input_name[tt] != '\\')
 //			--tt;
-//		sprintf(fName, "PA.d%d.%s", d+1, &pargs->input_name[tt+1]);
+//		sprintf(fName, "PM.d%d.%s", d+1, &pargs->input_name[tt+1]);
 ////		std::cout << fName << endl;
 //		std::ofstream out(fName);
 //		out << "groundtruth,score" << endl;
 //		for(int i = 0; i < maxInstId; ++i){
-//			double sum = 0;
+//			double min = dt->data[instId[i][0]][3];
 //			for(int j = 0; j < (int)instId[i].size(); ++j){
-//				sum += dt->data[instId[i][j]][3];
+//				if(min > dt->data[instId[i][j]][3])
+//					min = dt->data[instId[i][j]][3];
 //			}
-//			out << metadata->data[ instId[i][0] ][1]  << "," << sum/instId[i].size() << std::endl;
+//			out << metadata->data[ instId[i][0] ][1]  << "," << min << std::endl;
 //		}
 //		out.close();
 //	}
-//	}
+////	}
 //	if(1 == 1) return 0;
 //	for(int i = 0; i < 5; i++){
 //		std::vector<int> idx = getRandomIdx(5, 10);
@@ -409,6 +411,11 @@ int main(int argc, char* argv[]) {
 	doubleframe *dtAnom = copyAnomalyInstances(dt, metadata);
 	std::vector<int> nidx = getRandomIdx((int)std::ceil(dtNorm->nrow * 0.2), dtNorm->nrow);
 	std::vector<int> aidx = getRandomIdx((int)std::ceil(dtAnom->nrow * 0.2), dtAnom->nrow);
+	std::cout << "some initial random indices of test data:\n";
+	for(int i = 0; i < 10; i++){
+		if(i < nidx.size() && i < aidx.size())
+			std::cout << nidx[i] << "\t" << aidx[i] << std::endl;
+	}
 	doubleframe *dtTestNorm = copySelectedRows(dtNorm, nidx, 0, nidx.size()-1);
 	doubleframe *dtTestAnom = copySelectedRows(dtAnom, aidx, 0, aidx.size()-1);
 	std::cout << "# Test normals = " << dtTestNorm->nrow << std::endl;
@@ -439,10 +446,11 @@ int main(int argc, char* argv[]) {
 	deletedoubleframe(dtAnom);
 
 	double total = (dtTrainNorm->nrow + dtTrainAnom->nrow);
-	for(int s = 16; s < total; s *= 2){
+//	for(int s = 16; s < total; s *= 2)
+	{	int s = trainsamplesize;
 		std::cout << "s = " << s << std::endl;
-		int numNorm = (int)floor(s * dtTrainNorm->nrow / total);
-		int numAnom = (int)ceil(s * dtTrainAnom->nrow / total);
+		int numNorm = (int)floor(s * (dtTrainNorm->nrow / total));
+		int numAnom = (int)ceil(s * (dtTrainAnom->nrow / total));
 		if(numNorm + numAnom > s)
 			numNorm--;
 		else if(numNorm + numAnom < s)
