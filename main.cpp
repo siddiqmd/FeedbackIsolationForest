@@ -409,8 +409,9 @@ int main(int argc, char* argv[]) {
 	std::cout << "Volume = " << Tree::useVolumeForScore << std::endl;
 	doubleframe *dtNorm = copyNormalInstances(dt, metadata);
 	doubleframe *dtAnom = copyAnomalyInstances(dt, metadata);
-	std::vector<int> nidx = getRandomIdx((int)std::ceil(dtNorm->nrow * 0.2), dtNorm->nrow);
-	std::vector<int> aidx = getRandomIdx((int)std::ceil(dtAnom->nrow * 0.2), dtAnom->nrow);
+	double nFreq = (dt->nrow / 5.0) * 0.95 , aFreq = (dt->nrow / 5.0) * 0.05;
+	std::vector<int> nidx = getRandomIdx((int)std::floor(nFreq), dtNorm->nrow);
+	std::vector<int> aidx = getRandomIdx((int)std::ceil(aFreq), dtAnom->nrow);
 	std::cout << "some initial random indices of test data:\n";
 	for(int i = 0; i < 10; i++){
 		if(i < (int)nidx.size() && i < (int)aidx.size())
@@ -444,14 +445,14 @@ int main(int argc, char* argv[]) {
 	std::cout << "# Train anomaly = " << dtTrainAnom->nrow << std::endl;
 	deletedoubleframe(dtNorm);
 	deletedoubleframe(dtAnom);
-//	int trainsamplesize[11] = {0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384};
-	int trainsamplesize[11] = {0, 10, 20, 40, 60, 80, 100, 200, 1000, 10000, 100000};
-	double total = (dtTrainNorm->nrow + dtTrainAnom->nrow);
+	int trainsamplesize[16] = {0,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144};
+//	int trainsamplesize[11] = {0, 10, 20, 40, 60, 80, 100, 200, 1000, 10000, 100000};
+//	double total = (dtTrainNorm->nrow + dtTrainAnom->nrow);
 //	for(int s = 16; s < total; s *= 2)
 	{	int s = trainsamplesize[trainsampIdx];
 		std::cout << "s = " << s << std::endl;
-		int numNorm = (int)floor(s * (dtTrainNorm->nrow / total));
-		int numAnom = (int)ceil(s * (dtTrainAnom->nrow / total));
+		int numNorm = (int)floor(s * 0.95);
+		int numAnom = (int)ceil(s * 0.05);
 		if(numNorm + numAnom > s)
 			numNorm--;
 		else if(numNorm + numAnom < s)
