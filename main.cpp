@@ -409,9 +409,10 @@ int main(int argc, char* argv[]) {
 	std::cout << "Volume = " << Tree::useVolumeForScore << std::endl;
 	doubleframe *dtNorm = copyNormalInstances(dt, metadata);
 	doubleframe *dtAnom = copyAnomalyInstances(dt, metadata);
-	double nFreq = (dt->nrow / 5.0) * 0.95 , aFreq = (dt->nrow / 5.0) * 0.05;
-	std::vector<int> nidx = getRandomIdx((int)std::floor(nFreq), dtNorm->nrow);
-	std::vector<int> aidx = getRandomIdx((int)std::ceil(aFreq), dtAnom->nrow);
+	int nFreq = (int)std::floor(dtNorm->nrow / 5.0);
+	int aFreq = (int)std::ceil(nFreq / 19.0);
+	std::vector<int> nidx = getRandomIdx(nFreq, dtNorm->nrow);
+	std::vector<int> aidx = getRandomIdx(aFreq, dtAnom->nrow);
 	std::cout << "some initial random indices of test data:\n";
 	for(int i = 0; i < 10; i++){
 		if(i < (int)nidx.size() && i < (int)aidx.size())
