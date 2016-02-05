@@ -424,10 +424,12 @@ int main(int argc, char* argv[]) {
 	doubleframe *dtNorm0 = copyNormalInstances(dt, metadata);
 	doubleframe *dtAnom0 = copyAnomalyInstances(dt, metadata);
 
+	double alpha = dtAnom0->nrow/(double)(dtNorm0->nrow + dtNorm0->nrow);
+	std::cout << "alpha = " << alpha << std::endl;
 	// initial dataset
 	int initDsize = 2048;
-	int nFreq = (int)std::floor(initDsize * 0.95);
-	int aFreq = (int)std::ceil(initDsize * 0.05);
+	int nFreq = (int)std::floor(initDsize * (1-alpha));
+	int aFreq = (int)std::ceil(initDsize * alpha);
 	std::vector<int> nidx = getRandomIdx(nFreq, dtNorm0->nrow);
 	std::vector<int> aidx = getRandomIdx(aFreq, dtAnom0->nrow);
 	std::cout << "some initial random indices of init train data:\n";
@@ -441,6 +443,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "# Init Train anomaly = " << dtInitTrainAnom->nrow << std::endl;
 	doubleframe *dtInitTrain = createTrainingSet(dtInitTrainNorm, dtInitTrainAnom, nFreq, aFreq);
 //	printData(1, dtInitTrain, NULL);
+	std::cout << "Train set size = " << dtInitTrain->nrow << std::endl;
 	std::vector<int> 	restnidx = getRestIdx(nidx, dtNorm0->nrow),
 						restaidx = getRestIdx(aidx, dtAnom0->nrow);
 	doubleframe *dtNorm = copySelectedRows(dtNorm0, restnidx, 0, restnidx.size()-1);
@@ -459,7 +462,7 @@ int main(int argc, char* argv[]) {
 //	out.close();
 
 	nFreq = (int)std::floor(dtNorm->nrow / 5.0);
-	aFreq = (int)std::ceil(nFreq / 19.0);
+	aFreq = (int)std::ceil(nFreq * (alpha/(1-alpha)));
 	nidx = getRandomIdx(nFreq, dtNorm->nrow);
 	aidx = getRandomIdx(aFreq, dtAnom->nrow);
 	std::cout << "some initial random indices of test data:\n";
@@ -502,6 +505,7 @@ int main(int argc, char* argv[]) {
 		for (int rep = 0; rep < 50; ++rep) {
 			std::cout << "rep = " << rep << std::endl;
 			doubleframe *trainSet = createTrainingSet(dtTrainNorm, dtTrainAnom, numNorm, numAnom);
+			std::cout << "Train set size = " << trainSet->nrow << std::endl;
 			sprintf(fName, "%s.%d.%d", output_name, s, rep);
 //			ofstream out(fName);
 //			for (int i = 0; i < trainSet->nrow; ++i) {
