@@ -440,7 +440,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "# Init Train normals = " << dtInitTrainNorm->nrow << std::endl;
 	std::cout << "# Init Train anomaly = " << dtInitTrainAnom->nrow << std::endl;
 	doubleframe *dtInitTrain = createTrainingSet(dtInitTrainNorm, dtInitTrainAnom, nFreq, aFreq);
-	printData(1, dtInitTrain, NULL);
+//	printData(1, dtInitTrain, NULL);
 	std::vector<int> 	restnidx = getRestIdx(nidx, dtNorm0->nrow),
 						restaidx = getRestIdx(aidx, dtAnom0->nrow);
 	doubleframe *dtNorm = copySelectedRows(dtNorm0, restnidx, 0, restnidx.size()-1);
@@ -453,10 +453,10 @@ int main(int argc, char* argv[]) {
 	// create tree structure
 	OnlineIF oif(ntree, dtInitTrain, dtInitTrain->nrow, maxheight, rsample, dtInitTrain->nrow);
 	deletedoubleframe(dtInitTrain);
-	sprintf(fName, "trees/initTree%d.csv", trainsampIdx);
-	std::ofstream out(fName);
-	oif.printStat(out);
-	out.close();
+//	sprintf(fName, "trees/initTree%d.csv", trainsampIdx);
+//	std::ofstream out(fName);
+//	oif.printStat(out);
+//	out.close();
 
 	nFreq = (int)std::floor(dtNorm->nrow / 5.0);
 	aFreq = (int)std::ceil(nFreq / 19.0);
@@ -518,10 +518,10 @@ int main(int argc, char* argv[]) {
 			for(int i = 0; i < s; ++i)
 				oif.update(trainSet->data[i]);
 			oif.writeScoreDatabase(dtTestNorm, dtTestAnom, fName);
-			sprintf(fName, "trees/UpdatedTree%d.csv", trainsampIdx);
-			std::ofstream out(fName);
-			oif.printStat(out);
-			out.close();
+//			sprintf(fName, "trees/UpdatedTree%d.csv", trainsampIdx);
+//			std::ofstream out(fName);
+//			oif.printStat(out);
+//			out.close();
 			deletedoubleframe(trainSet);
 		}
 	}
