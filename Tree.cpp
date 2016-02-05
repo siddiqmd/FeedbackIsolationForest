@@ -99,6 +99,8 @@ double Tree::getPatternScoreAtDepth(double *inst, int depLim){
 			cur = cur->leftChild;
 		else
 			cur = cur->rightChild;
+//		if(cur->nodeSize == 0)
+//			std::cout << "error0" << std::endl;
 		ret = log(cur->nodeSize) - cur->volume;
 		if(cur->depth == depLim)
 			return ret;
@@ -187,7 +189,7 @@ double Tree::pathLength(double *inst) {
 // for online IF
 void Tree::renewNodeSize(){
 	nodeSize = newNodeSize;
-	newNodeSize = 0;
+	newNodeSize = 1;
 	if(leftChild == NULL && rightChild == NULL)
 		return;
 	leftChild->renewNodeSize();
@@ -208,7 +210,7 @@ void Tree::printDepthAndNodeSize(std::ofstream &out){
 	for(int i = 0; i < depth; ++i)
 		out << "-";
 	out << "(" << depth
-		<< ", " << nodeSize
+		<< ", " << nodeSize << ", " << newNodeSize
 		<< ", " << exp(volume)
 		<< ", " << splittingAtt
 		<< ", " << minAttVal

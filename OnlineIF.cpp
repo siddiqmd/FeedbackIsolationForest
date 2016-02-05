@@ -40,9 +40,9 @@ double OnlineIF::instanceScore(double *inst) {
  * Update corresponding nodes in the trees for a new instance
  */
 void OnlineIF::update(double inst[]){
-	double p = this->nsample/double(this->windowSize);
+//	double p = this->nsample/double(this->windowSize);
 	for(int i = 0; i < this->ntree; ++i){
-		if(randomD(0, 1) < p)
+//		if(randomD(0, 1) < p)
 			this->trees[i]->update(inst);
 	}
 
@@ -55,5 +55,6 @@ void OnlineIF::update(double inst[]){
 		}
 		// reset update count to start again
 		this->updateCount = 0;
+//		std::cout << "Tree Renewed" << std::endl;
 	}
 }

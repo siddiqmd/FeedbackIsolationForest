@@ -189,8 +189,8 @@ void Forest::getSample(std::vector<int> &sampleIndex, int nsample,
 void Forest::printStat(std::ofstream &out){
 	for(int i = 0; i < this->ntree; ++i){
 		this->trees[i]->printDepthAndNodeSize(out);
-		break;
-//		out << "#####################################" << std::endl;
+//		break;
+		out << "#####################################" << std::endl;
 	}
 }
 

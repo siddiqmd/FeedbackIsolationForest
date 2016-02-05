@@ -36,9 +36,9 @@ public:
 		splittingAtt = -1;
 		splittingPoint = 0;
 		depth = 0;
-		nodeSize = 0;
+		nodeSize = 1;
 
-		newNodeSize = 0;
+		newNodeSize = 1;// prior 1 in case of no data
 		minAttVal = 0;
 		maxAttVal = 0;
 		volume = 0;

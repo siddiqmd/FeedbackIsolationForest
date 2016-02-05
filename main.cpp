@@ -210,6 +210,19 @@ doubleframe *createTrainingSet(doubleframe *dtTrainNorm, doubleframe *dtTrainAno
 	return dtOn;
 }
 
+std::vector<int> getRestIdx(std::vector<int> idx, int nrow){
+	std::vector<int> restidx;
+	bool track[nrow];
+	for(int i = 0; i < nrow; ++i)
+		track[i] = true;
+	for(int i = 0; i < (int)idx.size(); ++i)
+		track[idx[i]] = false;
+	for(int i = 0; i < nrow; ++i){
+		if(track[i] == true)
+			restidx.push_back(i);
+	}
+	return restidx;
+}
 
 int sidx = 0;
 struct sItem {
@@ -229,7 +242,8 @@ void printData(int fid, doubleframe* dt, ntstringframe* metadata) {
 	sprintf(fname, "data%d.csv", fid + 1);
 	std::ofstream out(fname);
 	for (int i = 0; i < dt->nrow; ++i) {
-		out << metadata->data[i][0];
+		if(metadata)
+			out << metadata->data[i][0];
 		for (int j = 0; j < dt->ncol; ++j) {
 			out << "," << dt->data[i][j];
 		}
@@ -407,12 +421,47 @@ int main(int argc, char* argv[]) {
 	// Code for generating learning curve data
 	std::cout << "CheckRange = " << Tree::checkRange << std::endl;
 	std::cout << "Volume = " << Tree::useVolumeForScore << std::endl;
-	doubleframe *dtNorm = copyNormalInstances(dt, metadata);
-	doubleframe *dtAnom = copyAnomalyInstances(dt, metadata);
-	int nFreq = (int)std::floor(dtNorm->nrow / 5.0);
-	int aFreq = (int)std::ceil(nFreq / 19.0);
-	std::vector<int> nidx = getRandomIdx(nFreq, dtNorm->nrow);
-	std::vector<int> aidx = getRandomIdx(aFreq, dtAnom->nrow);
+	doubleframe *dtNorm0 = copyNormalInstances(dt, metadata);
+	doubleframe *dtAnom0 = copyAnomalyInstances(dt, metadata);
+
+	// initial dataset
+	int initDsize = 2048;
+	int nFreq = (int)std::floor(initDsize * 0.95);
+	int aFreq = (int)std::ceil(initDsize * 0.05);
+	std::vector<int> nidx = getRandomIdx(nFreq, dtNorm0->nrow);
+	std::vector<int> aidx = getRandomIdx(aFreq, dtAnom0->nrow);
+	std::cout << "some initial random indices of init train data:\n";
+	for(int i = 0; i < 10; i++){
+		if(i < (int)nidx.size() && i < (int)aidx.size())
+			std::cout << nidx[i] << "\t" << aidx[i] << std::endl;
+	}
+	doubleframe *dtInitTrainNorm = copySelectedRows(dtNorm0, nidx, 0, nidx.size()-1);
+	doubleframe *dtInitTrainAnom = copySelectedRows(dtAnom0, aidx, 0, aidx.size()-1);
+	std::cout << "# Init Train normals = " << dtInitTrainNorm->nrow << std::endl;
+	std::cout << "# Init Train anomaly = " << dtInitTrainAnom->nrow << std::endl;
+	doubleframe *dtInitTrain = createTrainingSet(dtInitTrainNorm, dtInitTrainAnom, nFreq, aFreq);
+	printData(1, dtInitTrain, NULL);
+	std::vector<int> 	restnidx = getRestIdx(nidx, dtNorm0->nrow),
+						restaidx = getRestIdx(aidx, dtAnom0->nrow);
+	doubleframe *dtNorm = copySelectedRows(dtNorm0, restnidx, 0, restnidx.size()-1);
+	doubleframe *dtAnom = copySelectedRows(dtAnom0, restaidx, 0, restaidx.size()-1);
+	deletedoubleframe(dtNorm0);
+	deletedoubleframe(dtAnom0);
+	deletedoubleframe(dtInitTrainNorm);
+	deletedoubleframe(dtInitTrainAnom);
+
+	// create tree structure
+	OnlineIF oif(ntree, dtInitTrain, dtInitTrain->nrow, maxheight, rsample, dtInitTrain->nrow);
+	deletedoubleframe(dtInitTrain);
+	sprintf(fName, "trees/initTree%d.csv", trainsampIdx);
+	std::ofstream out(fName);
+	oif.printStat(out);
+	out.close();
+
+	nFreq = (int)std::floor(dtNorm->nrow / 5.0);
+	aFreq = (int)std::ceil(nFreq / 19.0);
+	nidx = getRandomIdx(nFreq, dtNorm->nrow);
+	aidx = getRandomIdx(aFreq, dtAnom->nrow);
 	std::cout << "some initial random indices of test data:\n";
 	for(int i = 0; i < 10; i++){
 		if(i < (int)nidx.size() && i < (int)aidx.size())
@@ -422,36 +471,24 @@ int main(int argc, char* argv[]) {
 	doubleframe *dtTestAnom = copySelectedRows(dtAnom, aidx, 0, aidx.size()-1);
 	std::cout << "# Test normals = " << dtTestNorm->nrow << std::endl;
 	std::cout << "# Test anomaly = " << dtTestAnom->nrow << std::endl;
-	std::vector<int> restnidx, restaidx;
-	bool track1[dtNorm->nrow], track2[dtAnom->nrow];
-	for(int i = 0; i < dtNorm->nrow; i++)
-		track1[i] = true;
-	for(int i = 0; i < (int)nidx.size(); ++i)
-		track1[nidx[i]] = false;
-	for(int i = 0; i < dtNorm->nrow; ++i){
-		if( track1[i] == true)
-			restnidx.push_back(i);
-	}
-	for(int i = 0; i < dtAnom->nrow; i++)
-		track2[i] = true;
-	for(int i = 0; i < (int)aidx.size(); ++i)
-		track2[aidx[i]] = false;
-	for(int i = 0; i < dtAnom->nrow; ++i){
-		if( track2[i] == true)
-			restaidx.push_back(i);
-	}
+	restnidx = getRestIdx(nidx, dtNorm->nrow);
+	restaidx = getRestIdx(aidx, dtAnom->nrow);
 	doubleframe *dtTrainNorm = copySelectedRows(dtNorm, restnidx, 0, restnidx.size()-1);
 	doubleframe *dtTrainAnom = copySelectedRows(dtAnom, restaidx, 0, restaidx.size()-1);
 	std::cout << "# Train normals = " << dtTrainNorm->nrow << std::endl;
 	std::cout << "# Train anomaly = " << dtTrainAnom->nrow << std::endl;
 	deletedoubleframe(dtNorm);
 	deletedoubleframe(dtAnom);
+
 	int trainsamplesize[16] = {0,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144};
 //	int trainsamplesize[11] = {0, 10, 20, 40, 60, 80, 100, 200, 1000, 10000, 100000};
 //	double total = (dtTrainNorm->nrow + dtTrainAnom->nrow);
 //	for(int s = 16; s < total; s *= 2)
 	{	int s = trainsamplesize[trainsampIdx];
+		// change number of trees depending on the sample
 		std::cout << "s = " << s << std::endl;
+//		ntree = (int)std::ceil(std::pow(s, 2.0/3.0));
+		std::cout << "ntree = " << ntree << std::endl;
 		int numNorm = (int)floor(s * 0.95);
 		int numAnom = (int)ceil(s * 0.05);
 		if(numNorm + numAnom > s)
@@ -475,8 +512,16 @@ int main(int argc, char* argv[]) {
 //			}
 //			out << std::endl;
 //			out.close();
-			IsolationForest iff(ntree, trainSet, nsample, maxheight, rsample);
-			iff.writeScoreDatabase(dtTestNorm, dtTestAnom, fName);
+//			IsolationForest iff(ntree, trainSet, nsample, maxheight, rsample);
+
+			oif.setWindowSize(s);
+			for(int i = 0; i < s; ++i)
+				oif.update(trainSet->data[i]);
+			oif.writeScoreDatabase(dtTestNorm, dtTestAnom, fName);
+			sprintf(fName, "trees/UpdatedTree%d.csv", trainsampIdx);
+			std::ofstream out(fName);
+			oif.printStat(out);
+			out.close();
 			deletedoubleframe(trainSet);
 		}
 	}

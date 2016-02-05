@@ -15,6 +15,9 @@ public:
 	virtual ~OnlineIF() {}
 	double instanceScore(double *inst);
 	void update(double inst[]);
+	void setWindowSize(int _w){
+		windowSize = _w;
+	}
 };
 
 #endif /* ONLINEIF_HPP_ */
