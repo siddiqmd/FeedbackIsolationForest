@@ -424,7 +424,7 @@ int main(int argc, char* argv[]) {
 	doubleframe *dtNorm0 = copyNormalInstances(dt, metadata);
 	doubleframe *dtAnom0 = copyAnomalyInstances(dt, metadata);
 
-	double alpha = dtAnom0->nrow/(double)(dtNorm0->nrow + dtNorm0->nrow);
+	double alpha = dtAnom0->nrow/(double)(dtNorm0->nrow + dtAnom0->nrow);
 	std::cout << "alpha = " << alpha << std::endl;
 	// initial dataset
 	int initDsize = 2048;
@@ -492,8 +492,8 @@ int main(int argc, char* argv[]) {
 		std::cout << "s = " << s << std::endl;
 //		ntree = (int)std::ceil(std::pow(s, 2.0/3.0));
 		std::cout << "ntree = " << ntree << std::endl;
-		int numNorm = (int)floor(s * 0.95);
-		int numAnom = (int)ceil(s * 0.05);
+		int numNorm = (int)floor(s * (1-alpha));
+		int numAnom = (int)ceil(s * alpha);
 		if(numNorm + numAnom > s)
 			numNorm--;
 		else if(numNorm + numAnom < s)
