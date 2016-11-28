@@ -26,6 +26,32 @@ double Forest::instanceScore(double *inst) {
 
 }
 
+void Forest::writeScores(doubleframe *dt, char fName[]){
+	unsigned int MAX = 20;
+	std::ofstream outFile(fName);
+	bool comma = false;
+	for(int t = 0; t < this->ntree; ++t){
+		for(unsigned int depLim = 1; depLim <= MAX; ++depLim){
+			if(comma) outFile << ","; comma = true;
+			outFile << "t" << t+1 << "d" << depLim;
+		}
+	}
+	outFile << std::endl;
+	for(int i = 0; i < dt->nrow; ++i){
+		comma = false;
+		for(int t = 0; t < this->ntree; ++t){
+			std::vector<double> scores = this->trees[t]->getPatternScores(dt->data[i], MAX);
+			for(unsigned int depLim = 0; depLim < MAX; ++depLim){
+				if(comma) outFile << ","; comma = true;
+				if(depLim < scores.size())
+					outFile << scores[depLim];
+			}
+		}
+		outFile << std::endl;
+	}
+	outFile.close();
+}
+
 void Forest::writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fNamesuf[]){
 	char fNameIF[100],fNamePA[100],fNamePM[100];
 	double sumIF, sumPA, minPM, temp;

@@ -58,7 +58,7 @@ public:
 	void printDepthAndNodeSize(std::ofstream &out);
 	void printPatternFreq(double inst[], int &tid, int &iid, std::ofstream &out);
 
-	std::vector<double> getPatternScores(double *inst);
+	std::vector<double> getPatternScores(double *inst, int depLim = 10);
 	double getScoreAtDepth(double *inst, int depLim);
 	double getPatternScoreAtDepth(double *inst, int depLim);
 

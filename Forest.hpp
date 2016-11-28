@@ -39,6 +39,7 @@ public:
 
 	std::vector<double> getScore(doubleframe *df, int type);
 	void writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fName[]);
+	void writeScores(doubleframe *dt, char fNamesuf[]);
 
 	virtual double instanceScore(double *inst);
 	std::vector<double> AnomalyScore(doubleframe* df);

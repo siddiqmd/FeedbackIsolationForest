@@ -56,9 +56,9 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
 	leftChild = new Tree();
 	leftChild->parent = this;
 	leftChild->depth = this->depth + 1;
-//	leftChild->volume = this->volume + log(this->splittingPoint - Tree::LB[attribute])
-//									 - log(Tree::UB[attribute] - Tree::LB[attribute]);
-	leftChild->volume = this->volume + log(this->splittingPoint - min) - log(max - min);
+	leftChild->volume = this->volume + log(this->splittingPoint - Tree::LB[attribute])
+									 - log(Tree::UB[attribute] - Tree::LB[attribute]);
+//	leftChild->volume = this->volume + log(this->splittingPoint - min) - log(max - min);
 	temp = Tree::UB[attribute];
 	Tree::UB[attribute] = this->splittingPoint;
 	leftChild->iTree(lnodeData, dt, maxheight);
@@ -67,9 +67,9 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
 	rightChild = new Tree();
 	rightChild->parent = this;
 	rightChild->depth = this->depth + 1;
-//	rightChild->volume = this->volume + log(Tree::UB[attribute] - this->splittingPoint)
-//									  - log(Tree::UB[attribute] - Tree::LB[attribute]);
-	rightChild->volume = this->volume + log(max - this->splittingPoint) - log(max - min);
+	rightChild->volume = this->volume + log(Tree::UB[attribute] - this->splittingPoint)
+									  - log(Tree::UB[attribute] - Tree::LB[attribute]);
+//	rightChild->volume = this->volume + log(max - this->splittingPoint) - log(max - min);
 	temp = Tree::LB[attribute];
 	Tree::LB[attribute] = this->splittingPoint;
 	rightChild->iTree(rnodeData, dt, maxheight);
@@ -109,7 +109,7 @@ double Tree::getPatternScoreAtDepth(double *inst, int depLim){
 }
 
 
-std::vector<double> Tree::getPatternScores(double *inst){
+std::vector<double> Tree::getPatternScores(double *inst, int depLim){
 	std::vector<double> ret;
 	Tree *cur = this;
 	int cnt = 0;
@@ -118,18 +118,11 @@ std::vector<double> Tree::getPatternScores(double *inst){
 			cur = cur->leftChild;
 		else
 			cur = cur->rightChild;
-//		if(cur->nodeSize <= 0) break;
 		ret.push_back(log(cur->nodeSize) - cur->volume);
 		++cnt;
-		if(cnt >= 10)
+		if(cnt >= depLim)
 			break;
 	}
-//	if(ret.size() == 0) std::cout << "error";
-	while(cnt < 10){
-		ret.push_back(log(cur->nodeSize) - cur->volume);
-		cnt++;
-	}
-
 	return ret;
 }
 
