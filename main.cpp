@@ -322,11 +322,13 @@ int main(int argc, char* argv[]) {
 	std::cout << "# Samples   = " << nsample << std::endl;
 	std::cout << "# MaxHeight = " << maxheight << std::endl;
 	std::cout << "Original Data Dimension: " << dt->nrow << "," << dt->ncol << std::endl;
-	std::cout << metadata->colnames[0];
+	std::cout << metadata->colnames[0] << std::endl;
 
-	OnlineIF oif(ntree, dt, dt->nrow, maxheight, rsample, dt->nrow);
-
-	oif.writeScores(dt, output_name);
-
+	char fname[100];
+	for(int i = 0; i < 10; i++){
+		OnlineIF oif(ntree, dt, dt->nrow, maxheight, rsample, dt->nrow);
+		sprintf(fname, "%s.%d.csv", output_name, i);
+		oif.writeScores(dt, fname);
+	}
 	return 0;
 }
