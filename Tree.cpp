@@ -120,7 +120,7 @@ std::vector<double> Tree::getPatternScores(double *inst, int depLim){
 			cur = cur->rightChild;
 		ret.push_back(log(cur->nodeSize) - cur->volume);
 		++cnt;
-		if(cnt >= depLim)
+		if(cnt == depLim)
 			break;
 	}
 	return ret;

@@ -54,49 +54,52 @@ void Forest::writeScores(doubleframe *dt, char fName[]){
 
 void Forest::writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fNamesuf[]){
 	char fNameIF[100],fNamePA[100],fNamePM[100];
-	double sumIF, sumPA, minPM, temp;
-	for(int depLim = 1; depLim <= 10; ++depLim){
-		sprintf(fNameIF, "%s.IF.d%d.csv", fNamesuf, depLim);
-		sprintf(fNamePA, "%s.PA.d%d.csv", fNamesuf, depLim);
-		sprintf(fNamePM, "%s.PM.d%d.csv", fNamesuf, depLim);
-		std::ofstream outIF(fNameIF), outPA(fNamePA), outPM(fNamePM);
-		outIF << "groundtruth,score\n";
-		outPA << "groundtruth,score\n";
-		outPM << "groundtruth,score\n";
-		for(int i = 0; i < dtTestNorm->nrow; ++i){
-			sumIF = 0;
-			sumPA = 0;
-			minPM = this->trees[0]->getPatternScoreAtDepth(dtTestNorm->data[i], depLim);
-			for(int t = 0; t < this->ntree; ++t){
-				sumIF += this->trees[t]->getScoreAtDepth(dtTestNorm->data[i], depLim);
-				temp = this->trees[t]->getPatternScoreAtDepth(dtTestNorm->data[i], depLim);
-				sumPA += temp;
-				if(temp < minPM)
-					minPM = temp;
+	double sumIF, sumPA, minPM;
+	int depLim = -1;
+	sprintf(fNameIF, "%s.IF.csv", fNamesuf);
+	sprintf(fNamePA, "%s.PA.csv", fNamesuf);
+	sprintf(fNamePM, "%s.PM.csv", fNamesuf);
+	std::ofstream outIF(fNameIF), outPA(fNamePA), outPM(fNamePM);
+	outIF << "groundtruth,score\n";
+	outPA << "groundtruth,score\n";
+	outPM << "groundtruth,score\n";
+	for(int i = 0; i < dtTestNorm->nrow; ++i){
+		sumIF = 0;
+		sumPA = 0;
+		minPM = 1e100;
+		for(int t = 0; t < this->ntree; ++t){
+			sumIF += this->trees[t]->getScoreAtDepth(dtTestNorm->data[i], depLim);
+			std::vector<double> ps = this->trees[t]->getPatternScores(dtTestNorm->data[i], depLim);
+			for(int j = 0; j < (int)ps.size(); ++j){
+				sumPA += ps[j];
+				if(ps[j] < minPM)
+					minPM = ps[j];
 			}
-			outIF << "N," << sumIF/this->ntree << std::endl;
-			outPA << "N," << sumPA/this->ntree << std::endl;
-			outPM << "N," << minPM << std::endl;
 		}
-		for(int i = 0; i < dtTestAnom->nrow; ++i){
-			sumIF = 0;
-			sumPA = 0;
-			minPM = this->trees[0]->getPatternScoreAtDepth(dtTestAnom->data[i], depLim);
-			for(int t = 0; t < this->ntree; ++t){
-				sumIF += this->trees[t]->getScoreAtDepth(dtTestAnom->data[i], depLim);
-				temp = this->trees[t]->getPatternScoreAtDepth(dtTestAnom->data[i], depLim);
-				sumPA += temp;
-				if(temp < minPM)
-					minPM = temp;
-			}
-			outIF << "A," << sumIF/this->ntree << std::endl;
-			outPA << "A," << sumPA/this->ntree << std::endl;
-			outPM << "A," << minPM << std::endl;
-		}
-		outIF.close();
-		outPA.close();
-		outPM.close();
+		outIF << "nominal," << sumIF/this->ntree << std::endl;
+		outPA << "nominal," << sumPA/this->ntree << std::endl;
+		outPM << "nominal," << minPM << std::endl;
 	}
+	for(int i = 0; i < dtTestAnom->nrow; ++i){
+		sumIF = 0;
+		sumPA = 0;
+		minPM = 1e100;
+		for(int t = 0; t < this->ntree; ++t){
+			sumIF += this->trees[t]->getScoreAtDepth(dtTestAnom->data[i], depLim);
+			std::vector<double> ps = this->trees[t]->getPatternScores(dtTestAnom->data[i], depLim);
+			for(int j = 0; j < (int)ps.size(); ++j){
+				sumPA += ps[j];
+				if(ps[j] < minPM)
+					minPM = ps[j];
+			}
+		}
+		outIF << "anomaly," << sumIF/this->ntree << std::endl;
+		outPA << "anomaly," << sumPA/this->ntree << std::endl;
+		outPM << "anomaly," << minPM << std::endl;
+	}
+	outIF.close();
+	outPA.close();
+	outPM.close();
 }
 
 std::vector<double> Forest::getScore(doubleframe *df, int type){
