@@ -426,7 +426,7 @@ int main(int argc, char* argv[]) {
 	s = numNorm + numAnom;
 	std::cout << "# normals = " << numNorm << std::endl;
 	std::cout << "# anomaly = " << numAnom << std::endl;
-	for (int rep = 0; rep < 1; ++rep) {
+	for (int rep = 0; rep < 30; ++rep) {
 		std::cout << "rep = " << rep << std::endl;
 		doubleframe *trainSet = createTrainingSet(dtTrainNorm, dtTrainAnom, numNorm, numAnom);
 		std::cout << "Train set size = " << trainSet->nrow << std::endl;
