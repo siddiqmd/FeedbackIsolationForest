@@ -310,7 +310,7 @@ int main(int argc, char* argv[]) {
 //	bool verbose = pargs->verbose;
 	bool rsample = nsample != 0;
 	int useColumns = 0;
-	int trainsampIdx = pargs->columns;//-c for train sample size option
+//	int trainsampIdx = pargs->columns;//-c for train sample size option
 //	std::cout << useColumns << std::endl;
 //	int windowSize = pargs->window_size;
 
@@ -325,127 +325,27 @@ int main(int argc, char* argv[]) {
 	std::cout << "Original Data Dimension: " << dt->nrow << "," << dt->ncol
 			<< std::endl;
 
-//	if(1 == 1){
-//		printData(-1, dt, metadata);
-//		for(int ii = 0; ii < dt->ncol; ++ii){
-//			sortByFeature(ii, dt, metadata);
-//			std::cout << ii << std::endl;
-//			printData(ii, dt, metadata);
-//		}
-//		return 0;
-//	}
 	if (useColumns > 0 && dt->ncol > useColumns) {
 		doubleframe* temp = copyCols(dt, 0, useColumns - 1);
 		dt = temp;
 		std::cout << "Using columns: " << dt->ncol << std::endl;
 	}
 
-	// Code for generating learning curve data
-//	std::cout << "CheckRange = " << Tree::checkRange << std::endl;
-//	std::cout << "Volume = " << Tree::useVolumeForScore << std::endl;
-	doubleframe *dtNorm0 = copyNormalInstances(dt, metadata);
-	doubleframe *dtAnom0 = copyAnomalyInstances(dt, metadata);
+	IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
+	std::ofstream out("D:\\Codes\\IFMarginalization\\test\\out\\tree.txt");
+	iff.printStat(out);
 
-	double alpha = dtAnom0->nrow/(double)(dtNorm0->nrow + dtAnom0->nrow);
-	if(alpha > 0.01)
-		alpha = 0.01;
-	std::cout << "alpha = " << alpha << std::endl;
-	// initial dataset
-	int initDsize = (int)std::ceil(0.2 * (dtNorm0->nrow + dtAnom0->nrow));
-	int nFreq = (int)std::floor(initDsize * (1-alpha));
-	int aFreq = initDsize - nFreq;
-	std::vector<int> nidx = getRandomIdx(nFreq, dtNorm0->nrow);
-	std::vector<int> aidx = getRandomIdx(aFreq, dtAnom0->nrow);
-	std::cout << "some initial random indices of init train data:\n";
-	for(int i = 0; i < 10; i++){
-		if(i < (int)nidx.size() && i < (int)aidx.size())
-			std::cout << nidx[i] << "\t" << aidx[i] << std::endl;
-	}
-	doubleframe *dtInitTrainNorm = copySelectedRows(dtNorm0, nidx, 0, nidx.size()-1);
-	doubleframe *dtInitTrainAnom = copySelectedRows(dtAnom0, aidx, 0, aidx.size()-1);
-	std::cout << "# Init Train normals = " << dtInitTrainNorm->nrow << std::endl;
-	std::cout << "# Init Train anomaly = " << dtInitTrainAnom->nrow << std::endl;
-	doubleframe *dtInitTrain = createTrainingSet(dtInitTrainNorm, dtInitTrainAnom, nFreq, aFreq);
-//	printData(1, dtInitTrain, NULL);
-	std::cout << "Train set size = " << dtInitTrain->nrow << std::endl;
-	std::vector<int> 	restnidx = getRestIdx(nidx, dtNorm0->nrow),
-						restaidx = getRestIdx(aidx, dtAnom0->nrow);
-	doubleframe *dtNorm = copySelectedRows(dtNorm0, restnidx, 0, restnidx.size()-1);
-	doubleframe *dtAnom = copySelectedRows(dtAnom0, restaidx, 0, restaidx.size()-1);
-	deletedoubleframe(dtNorm0);
-	deletedoubleframe(dtAnom0);
-	deletedoubleframe(dtInitTrainNorm);
-	deletedoubleframe(dtInitTrainAnom);
+	std::vector<int> margFeat;
+	for(int i = 0; i < dt->ncol; i++)
+		margFeat.push_back(i);
+	std::vector<double> scores = iff.AnomalyScore(dt, margFeat);
+	char fname[100];
+	sprintf(fname, "%s.marg.csv", output_name);
+	printScoreToFile(scores, metadata, fname);
 
-	// create tree structure
-	OnlineIF oif(ntree, dtInitTrain, dtInitTrain->nrow, maxheight, rsample, dtInitTrain->nrow);
-	deletedoubleframe(dtInitTrain);
-//	sprintf(fName, "trees/initTree%d.csv", trainsampIdx);
-//	std::ofstream out(fName);
-//	oif.printStat(out);
-//	out.close();
+	std::vector<double> scores2 = iff.AnomalyScore(dt);
+	sprintf(fname, "%s.csv", output_name);
+	printScoreToFile(scores2, metadata, fname);
 
-	// Test data
-	nFreq = (int)std::floor(initDsize * (1-alpha));
-	aFreq = initDsize - nFreq;
-	nidx = getRandomIdx(nFreq, dtNorm->nrow);
-	aidx = getRandomIdx(aFreq, dtAnom->nrow);
-	std::cout << "some initial random indices of test data:\n";
-	for(int i = 0; i < 10; i++){
-		if(i < (int)nidx.size() && i < (int)aidx.size())
-			std::cout << nidx[i] << "\t" << aidx[i] << std::endl;
-	}
-	doubleframe *dtTestNorm = copySelectedRows(dtNorm, nidx, 0, nidx.size()-1);
-	doubleframe *dtTestAnom = copySelectedRows(dtAnom, aidx, 0, aidx.size()-1);
-	std::cout << "# Test normals = " << dtTestNorm->nrow << std::endl;
-	std::cout << "# Test anomaly = " << dtTestAnom->nrow << std::endl;
-
-	// Pattern frequency estimate data
-	restnidx = getRestIdx(nidx, dtNorm->nrow);
-	restaidx = getRestIdx(aidx, dtAnom->nrow);
-	doubleframe *dtTrainNorm = copySelectedRows(dtNorm, restnidx, 0, restnidx.size()-1);
-	doubleframe *dtTrainAnom = copySelectedRows(dtAnom, restaidx, 0, restaidx.size()-1);
-	std::cout << "# Train normals = " << dtTrainNorm->nrow << std::endl;
-	std::cout << "# Train anomaly = " << dtTrainAnom->nrow << std::endl;
-	deletedoubleframe(dtNorm);
-	deletedoubleframe(dtAnom);
-
-	char fName[100], fNameADP[100];
-
-	int trainsamplesize[16] = {0,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144};
-	int s = trainsamplesize[trainsampIdx];
-	std::cout << "s = " << s << std::endl;
-	int numNorm = (int)floor(s * (1-alpha));
-	int numAnom = s - numNorm;
-	if(numNorm > dtTrainNorm->nrow){
-		numNorm = dtTrainNorm->nrow;
-	}
-	if(numAnom > dtTrainAnom->nrow){
-		numAnom = dtTrainAnom->nrow;
-	}
-	s = numNorm + numAnom;
-	std::cout << "# normals = " << numNorm << std::endl;
-	std::cout << "# anomaly = " << numAnom << std::endl;
-	for (int rep = 0; rep < 30; ++rep) {
-		std::cout << "rep = " << rep << std::endl;
-		doubleframe *trainSet = createTrainingSet(dtTrainNorm, dtTrainAnom, numNorm, numAnom);
-		std::cout << "Train set size = " << trainSet->nrow << std::endl;
-
-		IsolationForest iff(ntree, trainSet, trainSet->nrow, maxheight, rsample);
-		sprintf(fNameADP, "%s.%d.%d.adp", output_name, s, rep);
-//		std::ofstream outADP(fNameADP);
-//		iff.printStat(outADP);
-		iff.writeScoreDatabase(dtTestNorm, dtTestAnom, fNameADP);
-
-		oif.setWindowSize(s);
-		for(int i = 0; i < s; ++i)
-			oif.update(trainSet->data[i]);
-		sprintf(fName, "%s.%d.%d", output_name, s, rep);
-//		std::ofstream out(fName);
-//		oif.printStat(out);
-		oif.writeScoreDatabase(dtTestNorm, dtTestAnom, fName);
-
-		deletedoubleframe(trainSet);
-	}
 	return 0;
 }

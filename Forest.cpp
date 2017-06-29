@@ -7,6 +7,8 @@
 
 #include "Forest.hpp"
 
+
+
 double Forest::getdepth(double* inst, Tree* tree) {
 	return tree->pathLength(inst);
 }
@@ -25,6 +27,19 @@ double Forest::instanceScore(double *inst) {
 //	return avgPathLength;//scores;
 
 }
+
+double Forest::instanceMarginalScore(double *inst, const std::vector<int> &margFeat){
+	std::vector<double> depths;
+	for (std::vector<Tree*>::iterator it = this->trees.begin();
+			it != trees.end(); ++it) {
+		depths.push_back((*it)->pathLength(inst, margFeat));
+	}
+
+	double avgPathLength = mean(depths);
+	double scores = pow(2, -avgPathLength / avgPL(this->nsample));
+	return scores;
+}
+
 
 void Forest::writeScores(doubleframe *dt, char fName[]){
 	unsigned int MAX = 20;
@@ -131,6 +146,18 @@ std::vector<double> Forest::getScore(doubleframe *df, int type){
 			res.push_back(max);
 	}
 	return res;
+}
+
+/*
+ * Score for  a set of dataframe in dataset
+ */
+std::vector<double> Forest::AnomalyScore(doubleframe* df, const std::vector<int> &margFeat) {
+	std::vector<double> scores;
+	//iterate through all points
+	for (int inst = 0; inst < df->nrow; inst++) {
+		scores.push_back(instanceMarginalScore(df->data[inst], margFeat));
+	}
+	return scores;
 }
 
 /*

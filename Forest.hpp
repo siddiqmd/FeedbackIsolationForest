@@ -41,7 +41,9 @@ public:
 	void writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fName[]);
 	void writeScores(doubleframe *dt, char fNamesuf[]);
 
+	virtual double instanceMarginalScore(double *inst, const std::vector<int> &margFeat);
 	virtual double instanceScore(double *inst);
+	std::vector<double> AnomalyScore(doubleframe* df, const std::vector<int> &margFeat);
 	std::vector<double> AnomalyScore(doubleframe* df);
 	virtual std::vector<double> pathLength(double *inst);
 	std::vector<std::vector<double> > pathLength(doubleframe* data);
