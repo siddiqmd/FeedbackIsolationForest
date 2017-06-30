@@ -335,10 +335,10 @@ int main(int argc, char* argv[]) {
 	std::ofstream out("D:\\Codes\\IFMarginalization\\test\\out\\tree.txt");
 	iff.printStat(out);
 
-	std::vector<int> margFeat;
+	bool *marginalize = new bool[dt->ncol];
 	for(int i = 0; i < dt->ncol; i++)
-		margFeat.push_back(i);
-	std::vector<double> scores = iff.AnomalyScore(dt, margFeat);
+		marginalize[i] = true;
+	std::vector<double> scores = iff.AnomalyScore(dt, marginalize);
 	char fname[100];
 	sprintf(fname, "%s.marg.csv", output_name);
 	printScoreToFile(scores, metadata, fname);
@@ -346,6 +346,57 @@ int main(int argc, char* argv[]) {
 	std::vector<double> scores2 = iff.AnomalyScore(dt);
 	sprintf(fname, "%s.csv", output_name);
 	printScoreToFile(scores2, metadata, fname);
+
+	int numExp = 10;
+	std::vector<int> topidx;
+	int maxidx;
+	for(int i = 0; i < numExp; i++){
+		double max = -100;
+		for(int j = 0; j < (int)scores.size(); j++){
+			if(scores[j] > max){
+				max = scores[j];
+				maxidx = j;
+			}
+		}
+		scores[maxidx] = -100;
+		topidx.push_back(maxidx);
+	}
+	// sequential marginal
+	std::cout << "sequential marginal" << std::endl;
+	for(int i = 0; i < numExp; i++){
+		std::vector<int> explanation = iff.getSeqMarExplanation(dt->data[topidx[i]], dt->ncol);
+		std::cout << explanation[0];
+		for(int j = 1; j < (int)explanation.size(); j++)
+			std::cout << "," << explanation[j];
+		std::cout << std::endl;
+	}
+	// sequential dropout
+	std::cout << "sequential dropout" << std::endl;
+	for(int i = 0; i < numExp; i++){
+		std::vector<int> explanation = iff.getSeqDropExplanation(dt->data[topidx[i]], dt->ncol);
+		std::cout << explanation[0];
+		for(int j = 1; j < (int)explanation.size(); j++)
+			std::cout << "," << explanation[j];
+		std::cout << std::endl;
+	}
+	// reverse sequential marginal
+	std::cout << "reverse sequential marginal" << std::endl;
+	for(int i = 0; i < numExp; i++){
+		std::vector<int> explanation = iff.getRevSeqMarExplanation(dt->data[topidx[i]], dt->ncol);
+		std::cout << explanation[0];
+		for(int j = 1; j < (int)explanation.size(); j++)
+			std::cout << "," << explanation[j];
+		std::cout << std::endl;
+	}
+	// reverse sequential dropout
+	std::cout << "reverse sequential dropout" << std::endl;
+	for(int i = 0; i < numExp; i++){
+		std::vector<int> explanation = iff.getRevSeqDropExplanation(dt->data[topidx[i]], dt->ncol);
+		std::cout << explanation[0];
+		for(int j = 1; j < (int)explanation.size(); j++)
+			std::cout << "," << explanation[j];
+		std::cout << std::endl;
+	}
 
 	return 0;
 }

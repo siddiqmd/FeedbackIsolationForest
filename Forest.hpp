@@ -41,9 +41,14 @@ public:
 	void writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fName[]);
 	void writeScores(doubleframe *dt, char fNamesuf[]);
 
-	virtual double instanceMarginalScore(double *inst, const std::vector<int> &margFeat);
+	std::vector<int> getSeqMarExplanation(const double *inst, int dim, int k = 0);
+	std::vector<int> getSeqDropExplanation(const double *inst, int dim, int k = 0);
+	std::vector<int> getRevSeqMarExplanation(const double *inst, int dim, int k = 0);
+	std::vector<int> getRevSeqDropExplanation(const double *inst, int dim, int k = 0);
+
+	virtual double instanceMarginalScore(const double *inst, const bool *marginalize);
 	virtual double instanceScore(double *inst);
-	std::vector<double> AnomalyScore(doubleframe* df, const std::vector<int> &margFeat);
+	std::vector<double> AnomalyScore(const doubleframe* df, const bool *marginalize);
 	std::vector<double> AnomalyScore(doubleframe* df);
 	virtual std::vector<double> pathLength(double *inst);
 	std::vector<std::vector<double> > pathLength(doubleframe* data);

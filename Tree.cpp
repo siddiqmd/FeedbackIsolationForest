@@ -180,30 +180,22 @@ double Tree::pathLength(double *inst) {
 }
 
 
-double Tree::pathLength(double *inst, const std::vector<int> &margFeat) {
+double Tree::pathLength(const double *inst, const bool *marginalize) {
 	Tree *cur = this;
 	if(cur->leftChild == NULL && cur->rightChild == NULL)
 		return (cur->depth + avgPL(cur->nodeSize));
 
-	bool marginalize = false;
-	for(int i = 0; i < (int) margFeat.size(); ++i){
-		if(margFeat[i] == cur->splittingAtt){
-			marginalize = true;
-			break;
-		}
-	}
-
-	if(marginalize){
-		double ldepth = cur->leftChild->pathLength(inst, margFeat);
-		double rdepth = cur->rightChild->pathLength(inst, margFeat);
+	if(marginalize[cur->splittingAtt] == true){
+		double ldepth = cur->leftChild->pathLength(inst, marginalize);
+		double rdepth = cur->rightChild->pathLength(inst, marginalize);
 		return 	(cur->leftChild->nodeSize / (double)cur->nodeSize) * ldepth +
 				(cur->rightChild->nodeSize / (double)cur->nodeSize) * rdepth;
 	}else{
 		double instAttVal = inst[cur->splittingAtt];
 		if (instAttVal <= cur->splittingPoint)
-			return cur->leftChild->pathLength(inst, margFeat);
+			return cur->leftChild->pathLength(inst, marginalize);
 		else
-			return cur->rightChild->pathLength(inst, margFeat);
+			return cur->rightChild->pathLength(inst, marginalize);
 	}
 }
 

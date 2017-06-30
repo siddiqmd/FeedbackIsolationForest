@@ -28,11 +28,167 @@ double Forest::instanceScore(double *inst) {
 
 }
 
-double Forest::instanceMarginalScore(double *inst, const std::vector<int> &margFeat){
+/*
+ * Compute sequential marginal explanation
+ * inst: instance to be explained
+ * dim: dimension of the data i.e. number of features in inst
+ * k: number of most important features to find
+ */
+std::vector<int> Forest::getSeqMarExplanation(const double *inst, int dim, int k){
+	if(k == 0) k = dim;
+	std::vector<int> explanation;
+	double temp, max;
+	int pick;
+	bool *marginalize = new bool[dim];
+	for(int i = 0; i < dim; ++i)
+		marginalize[i] = true;
+
+	for(int cnt = 0; cnt < k; cnt++){
+		max = -100;
+		for(int i = 0; i < dim; ++i){
+			if(marginalize[i] == false)
+				continue;
+			marginalize[i] = false;
+			temp = instanceMarginalScore(inst, marginalize);
+			marginalize[i] = true;
+			if(temp > max){
+				max = temp;
+				pick = i;
+			}
+		}
+		explanation.push_back(pick);
+		marginalize[pick] = false;
+	}
+
+	delete []marginalize;
+	return explanation;
+}
+
+/*
+ * Compute sequential dropout explanation
+ * inst: instance to be explained
+ * dim: dimension of the data i.e. number of features in inst
+ * k: number of most important features to find
+ */
+std::vector<int> Forest::getSeqDropExplanation(const double *inst, int dim, int k){
+	if(k == 0) k = dim;
+	std::vector<int> explanation;
+	double temp, min;
+	int pick;
+	bool *marginalize = new bool[dim];
+	for(int i = 0; i < dim; ++i)
+		marginalize[i] = false;
+
+	for(int cnt = 0; cnt < k; cnt++){
+		min = 100;
+		for(int i = 0; i < dim; ++i){
+			if(marginalize[i] == true)
+				continue;
+			marginalize[i] = true;
+			temp = instanceMarginalScore(inst, marginalize);
+			marginalize[i] = false;
+			if(temp < min){
+				min = temp;
+				pick = i;
+			}
+		}
+		explanation.push_back(pick);
+		marginalize[pick] = true;
+	}
+
+	delete []marginalize;
+	return explanation;
+}
+
+/*
+ * Compute reverse sequential marginal explanation
+ * inst: instance to be explained
+ * dim: dimension of the data i.e. number of features in inst
+ * k: number of most important features to find
+ */
+std::vector<int> Forest::getRevSeqMarExplanation(const double *inst, int dim, int k){
+	std::vector<int> explanation;
+	double temp, min;
+	int pick;
+	bool *marginalize = new bool[dim];
+	for(int i = 0; i < dim; ++i)
+		marginalize[i] = true;
+
+	for(int cnt = 0; cnt < dim; cnt++){
+		min = 100;
+		for(int i = 0; i < dim; ++i){
+			if(marginalize[i] == false)
+				continue;
+			marginalize[i] = false;
+			temp = instanceMarginalScore(inst, marginalize);
+			marginalize[i] = true;
+			if(temp < min){
+				min = temp;
+				pick = i;
+			}
+		}
+		explanation.push_back(pick);
+		marginalize[pick] = false;
+	}
+
+	int len = (int)explanation.size();
+	for(int i = 0; i < len/2; i++){
+		int temp = explanation[i];
+		explanation[i] = explanation[len-i-1];
+		explanation[len-i-1] = temp;
+	}
+
+	delete []marginalize;
+	return explanation;
+}
+
+/*
+ * Compute reverse sequential dropout explanation
+ * inst: instance to be explained
+ * dim: dimension of the data i.e. number of features in inst
+ * k: number of most important features to find
+ */
+std::vector<int> Forest::getRevSeqDropExplanation(const double *inst, int dim, int k){
+	std::vector<int> explanation;
+	double temp, max;
+	int pick;
+	bool *marginalize = new bool[dim];
+	for(int i = 0; i < dim; ++i)
+		marginalize[i] = false;
+
+	for(int cnt = 0; cnt < dim; cnt++){
+		max = -100;
+		for(int i = 0; i < dim; ++i){
+			if(marginalize[i] == true)
+				continue;
+			marginalize[i] = true;
+			temp = instanceMarginalScore(inst, marginalize);
+			marginalize[i] = false;
+			if(temp > max){
+				max = temp;
+				pick = i;
+			}
+		}
+		explanation.push_back(pick);
+		marginalize[pick] = true;
+	}
+
+	int len = (int)explanation.size();
+	for(int i = 0; i < len/2; i++){
+		int temp = explanation[i];
+		explanation[i] = explanation[len-i-1];
+		explanation[len-i-1] = temp;
+	}
+
+	delete []marginalize;
+	return explanation;
+}
+
+double Forest::instanceMarginalScore(const double *inst, const bool *marginalize){
 	std::vector<double> depths;
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
-		depths.push_back((*it)->pathLength(inst, margFeat));
+		depths.push_back((*it)->pathLength(inst, marginalize));
 	}
 
 	double avgPathLength = mean(depths);
@@ -151,11 +307,11 @@ std::vector<double> Forest::getScore(doubleframe *df, int type){
 /*
  * Score for  a set of dataframe in dataset
  */
-std::vector<double> Forest::AnomalyScore(doubleframe* df, const std::vector<int> &margFeat) {
+std::vector<double> Forest::AnomalyScore(const doubleframe* df, const bool *marginalize) {
 	std::vector<double> scores;
 	//iterate through all points
 	for (int inst = 0; inst < df->nrow; inst++) {
-		scores.push_back(instanceMarginalScore(df->data[inst], margFeat));
+		scores.push_back(instanceMarginalScore(df->data[inst], marginalize));
 	}
 	return scores;
 }

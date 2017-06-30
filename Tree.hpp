@@ -52,7 +52,7 @@ public:
 	void iTree(std::vector<int> const &dIndex, const doubleframe* dt,
 			int &maxHeight);
 	double pathLength(double *inst);
-	double pathLength(double *inst, const std::vector<int> &margFeat);
+	double pathLength(const double *inst, const bool *marginalize);
 	// for online IF
 	void renewNodeSize();
 	void update(const double inst[]);
