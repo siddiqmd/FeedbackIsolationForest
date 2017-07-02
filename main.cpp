@@ -335,7 +335,7 @@ int main(int argc, char* argv[]) {
 	ofstream fout;
 
 	IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-	std::ofstream out("D:\\Codes\\IFMarginalization\\test\\out\\tree.txt");
+	std::ofstream out("out/tree.txt");
 	iff.printStat(out);
 
 	std::vector<double> scores = iff.AnomalyScore(dt);
@@ -347,13 +347,13 @@ int main(int argc, char* argv[]) {
 	fout.open(fname);
 	fout << "groundtruth,anomalyscore";
 	for(int i = 1; i <= dt->ncol; i++)
-		fout << ",f" << i;
+		fout << ",R" << i;
 	fout << "\n";
 	for(int i = 0; i < dt->nrow; i++){
 		std::vector<int> explanation = iff.getSeqMarExplanation(dt->data[i], dt->ncol);
 		fout << metadata->data[i][0] << "," << scores[i];
 		for(int j = 0; j < (int)explanation.size(); j++)
-			fout << "," << explanation[j];
+			fout << "," << explanation[j]+1;
 		fout << "\n";
 	}
 	fout.close();
@@ -363,13 +363,13 @@ int main(int argc, char* argv[]) {
 	fout.open(fname);
 	fout << "groundtruth,anomalyscore";
 	for(int i = 1; i <= dt->ncol; i++)
-		fout << ",f" << i;
+		fout << ",R" << i;
 	fout << "\n";
 	for(int i = 0; i < dt->nrow; i++){
 		std::vector<int> explanation = iff.getSeqDropExplanation(dt->data[i], dt->ncol);
 		fout << metadata->data[i][0] << "," << scores[i];
 		for(int j = 0; j < (int)explanation.size(); j++)
-			fout << "," << explanation[j];
+			fout << "," << explanation[j]+1;
 		fout << "\n";
 	}
 	fout.close();
