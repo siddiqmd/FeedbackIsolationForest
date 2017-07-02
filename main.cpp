@@ -331,72 +331,48 @@ int main(int argc, char* argv[]) {
 		std::cout << "Using columns: " << dt->ncol << std::endl;
 	}
 
+	char fname[100];
+	ofstream fout;
+
 	IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
 	std::ofstream out("D:\\Codes\\IFMarginalization\\test\\out\\tree.txt");
 	iff.printStat(out);
 
-	bool *marginalize = new bool[dt->ncol];
-	for(int i = 0; i < dt->ncol; i++)
-		marginalize[i] = true;
-	std::vector<double> scores = iff.AnomalyScore(dt, marginalize);
-	char fname[100];
-	sprintf(fname, "%s.marg.csv", output_name);
+	std::vector<double> scores = iff.AnomalyScore(dt);
+	sprintf(fname, "%s.csv", output_name);
 	printScoreToFile(scores, metadata, fname);
 
-	std::vector<double> scores2 = iff.AnomalyScore(dt);
-	sprintf(fname, "%s.csv", output_name);
-	printScoreToFile(scores2, metadata, fname);
-
-	int numExp = 10;
-	std::vector<int> topidx;
-	int maxidx;
-	for(int i = 0; i < numExp; i++){
-		double max = -100;
-		for(int j = 0; j < (int)scores.size(); j++){
-			if(scores[j] > max){
-				max = scores[j];
-				maxidx = j;
-			}
-		}
-		scores[maxidx] = -100;
-		topidx.push_back(maxidx);
-	}
 	// sequential marginal
-	std::cout << "sequential marginal" << std::endl;
-	for(int i = 0; i < numExp; i++){
-		std::vector<int> explanation = iff.getSeqMarExplanation(dt->data[topidx[i]], dt->ncol);
-		std::cout << explanation[0];
-		for(int j = 1; j < (int)explanation.size(); j++)
-			std::cout << "," << explanation[j];
-		std::cout << std::endl;
+	sprintf(fname, "%s.SeqMarg.csv", output_name);
+	fout.open(fname);
+	fout << "groundtruth,anomalyscore";
+	for(int i = 1; i <= dt->ncol; i++)
+		fout << ",f" << i;
+	fout << "\n";
+	for(int i = 0; i < dt->nrow; i++){
+		std::vector<int> explanation = iff.getSeqMarExplanation(dt->data[i], dt->ncol);
+		fout << metadata->data[i][0] << "," << scores[i];
+		for(int j = 0; j < (int)explanation.size(); j++)
+			fout << "," << explanation[j];
+		fout << "\n";
 	}
+	fout.close();
+
 	// sequential dropout
-	std::cout << "sequential dropout" << std::endl;
-	for(int i = 0; i < numExp; i++){
-		std::vector<int> explanation = iff.getSeqDropExplanation(dt->data[topidx[i]], dt->ncol);
-		std::cout << explanation[0];
-		for(int j = 1; j < (int)explanation.size(); j++)
-			std::cout << "," << explanation[j];
-		std::cout << std::endl;
+	sprintf(fname, "%s.SeqDrop.csv", output_name);
+	fout.open(fname);
+	fout << "groundtruth,anomalyscore";
+	for(int i = 1; i <= dt->ncol; i++)
+		fout << ",f" << i;
+	fout << "\n";
+	for(int i = 0; i < dt->nrow; i++){
+		std::vector<int> explanation = iff.getSeqDropExplanation(dt->data[i], dt->ncol);
+		fout << metadata->data[i][0] << "," << scores[i];
+		for(int j = 0; j < (int)explanation.size(); j++)
+			fout << "," << explanation[j];
+		fout << "\n";
 	}
-	// reverse sequential marginal
-	std::cout << "reverse sequential marginal" << std::endl;
-	for(int i = 0; i < numExp; i++){
-		std::vector<int> explanation = iff.getRevSeqMarExplanation(dt->data[topidx[i]], dt->ncol);
-		std::cout << explanation[0];
-		for(int j = 1; j < (int)explanation.size(); j++)
-			std::cout << "," << explanation[j];
-		std::cout << std::endl;
-	}
-	// reverse sequential dropout
-	std::cout << "reverse sequential dropout" << std::endl;
-	for(int i = 0; i < numExp; i++){
-		std::vector<int> explanation = iff.getRevSeqDropExplanation(dt->data[topidx[i]], dt->ncol);
-		std::cout << explanation[0];
-		for(int j = 1; j < (int)explanation.size(); j++)
-			std::cout << "," << explanation[j];
-		std::cout << std::endl;
-	}
+	fout.close();
 
 	return 0;
 }

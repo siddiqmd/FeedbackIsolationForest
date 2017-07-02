@@ -1,0 +1,4 @@
+
+../osu_iforest/iforest.exe -i data/in2.csv -o out/in2 -t 3 -m 1
+
+../osu_iforest/iforest.exe -i data/adult.data -o out/adult -t 1 -m 7
