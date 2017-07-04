@@ -2,3 +2,6 @@
 ../osu_iforest/iforest.exe -i data/in2.csv -o out/in2 -t 3 -m 1
 
 ../osu_iforest/iforest.exe -i data/adult.data -o out/adult -t 1 -m 7
+
+../iforest.exe -i data/benchid_abalone960_regression_hard_0.408320542605121_level-1_1.29685177578128_0.01_0.00997375328083989_s_1.2887236673124.csv -o out/abalone960 -t 100 -m 1-2
+
