@@ -1,28 +1,23 @@
 
-function auc = getAUCPatt(MAX,dataname)
-	d='output/';
-	result = zeros(6,14);
-	t = 1;
-	for type = {'IF', 'PA', 'PM', 'adp.IF', 'adp.PA', 'adp.PM'}
-		s = 1;
-	    for Size = {'16','32','64','128','256','512','1024','2048','4096','8192','16384','32768','65536','131072'}
-			auc = zeros(1,MAX);
-			for rep = 1:MAX
-				f = strcat(dataname, '.', num2str(Size{1}), '.', num2str(rep-1), '.', num2str(type{1}), '.csv');
-				if exist(strcat(d, f), 'file') > 0
-					disp(f);
-					X = readtable(strcat(d, f));
-					DATA = table2array(X(:,2));
-					LAB = table2array(X(:,1));
-					[~, ~, ~, auc(rep)] = perfcurve(LAB, -DATA, 'anomaly');
-				else
-					auc(rep) = 0;
-				end
+function auc = getAUCPatt(dataname, MAXF)
+    type = {'seq_marg', 'seq_drop'};
+	d='out/';
+	for t = 1:2
+        result = zeros(6, MAXF+1);
+	    for iter = 1:10
+			for rep = 0:MAXF
+                if rep == 0
+                    f = strcat(d, dataname, '_iter', num2str(iter), '_', num2str(rep), '.csv');
+                else
+                    f = strcat(d, dataname, '_', type{t}, '_iter', num2str(iter), '_', num2str(rep), '.csv');
+                end
+				disp(f);
+                X = readtable(f);
+                DATA = table2array(X(:,2));
+                LAB = table2array(X(:,1));
+                [~, ~, ~, result(iter,rep+1)] = perfcurve(LAB, DATA, 'anomaly');
 			end
-			result(t, s) = mean(auc);
-			s = s + 1;
-	    end
-		t = t + 1;
-	end
-	csvwrite(strcat('AUC.',dataname,'.csv'), result);
+        end
+        csvwrite(strcat('AUC.',dataname,'.',type{t},'.csv'), result);
+    end
 end
