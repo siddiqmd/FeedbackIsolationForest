@@ -297,6 +297,7 @@ void printScoreToFile(vector<double> &scores, const ntstringframe* metadata,
 }
 
 int main(int argc, char* argv[]) {
+	std::time_t st = std::time(nullptr);
 	srand(0); //randomize for random number generator.
 	// parse argument from command line
 	parsed_args* pargs = parse_args(argc, argv);
@@ -366,11 +367,11 @@ int main(int argc, char* argv[]) {
 	//			std::cout << midx << " ";
 				scores[midx] = 0;
 
-				std::vector<int> exp_seq_marg = iff.getSeqMarExplanation(dt->data[midx], dt->ncol, 1);
+				std::vector<int> exp_seq_marg = iff.getSeqMarExplanation(dt->data[midx], dt->ncol, marginalize, 1);
 				freq[exp_seq_marg[0]]++;
 			}
 
-			int marg_feat = 0;
+			int marg_feat = -1;
 			int max = 0;
 			for(int i = 0; i < dt->ncol; i++){
 				if(freq[i] > max){
@@ -411,7 +412,7 @@ int main(int argc, char* argv[]) {
 	//			std::cout << midx << " ";
 				scores[midx] = 0;
 
-				std::vector<int> exp_seq_drop = iff.getSeqDropExplanation(dt->data[midx], dt->ncol, 1);
+				std::vector<int> exp_seq_drop = iff.getSeqDropExplanation(dt->data[midx], dt->ncol, marginalize, 1);
 				freq[exp_seq_drop[0]]++;
 			}
 
@@ -435,6 +436,7 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
+	std::cout << "Time elapsed: " << std::time(nullptr) - st << " seconds";
 //	// sequential marginal
 //	sprintf(fname, "%s.SeqMarg.csv", output_name);
 //	fout.open(fname);

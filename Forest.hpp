@@ -41,8 +41,8 @@ public:
 	void writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fName[]);
 	void writeScores(doubleframe *dt, char fNamesuf[]);
 
-	std::vector<int> getSeqMarExplanation(const double *inst, int dim, int k = 0);
-	std::vector<int> getSeqDropExplanation(const double *inst, int dim, int k = 0);
+	std::vector<int> getSeqMarExplanation(const double *inst, int dim, bool *exclude, int k = 0);
+	std::vector<int> getSeqDropExplanation(const double *inst, int dim, bool *exclude, int k = 0);
 	std::vector<int> getRevSeqMarExplanation(const double *inst, int dim, int k = 0);
 	std::vector<int> getRevSeqDropExplanation(const double *inst, int dim, int k = 0);
 
@@ -58,7 +58,7 @@ public:
 	std::vector<double> importance(double *inst);
 	double getdepth(double *inst, Tree* tree);
 	void getSample(std::vector<int> &sampleIndex, int nsample,
-			bool rSample, int nrow);
+			bool rSample, int nrow, int *rndIdx);
 	void printStat(std::ofstream &out);
 	void printPatternFreq(const doubleframe *df, int n, std::ofstream &out);
 };

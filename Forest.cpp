@@ -34,7 +34,7 @@ double Forest::instanceScore(double *inst) {
  * dim: dimension of the data i.e. number of features in inst
  * k: number of most important features to find
  */
-std::vector<int> Forest::getSeqMarExplanation(const double *inst, int dim, int k){
+std::vector<int> Forest::getSeqMarExplanation(const double *inst, int dim, bool *exclude, int k){
 	if(k == 0) k = dim;
 	std::vector<int> explanation;
 	double temp, max;
@@ -45,8 +45,9 @@ std::vector<int> Forest::getSeqMarExplanation(const double *inst, int dim, int k
 
 	for(int cnt = 0; cnt < k; cnt++){
 		max = -100;
+		pick = -1;
 		for(int i = 0; i < dim; ++i){
-			if(marginalize[i] == false)
+			if(marginalize[i] == false || exclude[i] == true)
 				continue;
 			marginalize[i] = false;
 			temp = instanceMarginalScore(inst, marginalize);
@@ -70,7 +71,7 @@ std::vector<int> Forest::getSeqMarExplanation(const double *inst, int dim, int k
  * dim: dimension of the data i.e. number of features in inst
  * k: number of most important features to find
  */
-std::vector<int> Forest::getSeqDropExplanation(const double *inst, int dim, int k){
+std::vector<int> Forest::getSeqDropExplanation(const double *inst, int dim, bool *exclude, int k){
 	if(k == 0) k = dim;
 	std::vector<int> explanation;
 	double temp, min;
@@ -81,8 +82,9 @@ std::vector<int> Forest::getSeqDropExplanation(const double *inst, int dim, int 
 
 	for(int cnt = 0; cnt < k; cnt++){
 		min = 100;
+		pick = -1;
 		for(int i = 0; i < dim; ++i){
-			if(marginalize[i] == true)
+			if(marginalize[i] == true || exclude[i] == true)
 				continue;
 			marginalize[i] = true;
 			temp = instanceMarginalScore(inst, marginalize);
@@ -380,12 +382,10 @@ std::vector<double> Forest::importance(double *inst) {
 }
 
 void Forest::getSample(std::vector<int> &sampleIndex, int nsample,
-		bool rsample, int nrow) {
+		bool rsample, int nrow, int *rndIdx) {
 	if(nsample > nrow || nsample <= 0)
 		nsample = nrow;
-	int *rndIdx = new int[nrow];
-	for(int i = 0; i < nrow; ++i)
-		rndIdx[i] = i;
+
 	for(int i = 0; i < nsample; ++i){
 		int r = rand() % nrow;
 		int t = rndIdx[i];
@@ -395,7 +395,6 @@ void Forest::getSample(std::vector<int> &sampleIndex, int nsample,
 	for(int i = 0; i < nsample; ++i){
 		sampleIndex.push_back(rndIdx[i]);
 	}
-	delete []rndIdx;
 }
 
 void Forest::printStat(std::ofstream &out){

@@ -15,10 +15,15 @@ OnlineIF::OnlineIF(int _ntree, doubleframe* _df, int _nsample, int _maxheight,
  */
 void OnlineIF::genInitTreeStructures(doubleframe *dataset){
 	std::vector<int> sampleIndex;
+
+	int *rndIdx = new int[dataset->nrow];
+	for(int i = 0; i < dataset->nrow; ++i)
+		rndIdx[i] = i;
+
 	for (int n = 0; n < this->ntree; n++) {
 		// Sample and shuffle the data.
 		sampleIndex.clear();
-		getSample(sampleIndex, nsample, rsample, windowSize);
+		getSample(sampleIndex, nsample, rsample, windowSize, rndIdx);
 
 		Tree::initialezeLBandUB(dataset, sampleIndex);
 
@@ -27,6 +32,8 @@ void OnlineIF::genInitTreeStructures(doubleframe *dataset){
 		tree->iTree(sampleIndex, dataset, maxheight);
 		this->trees.push_back(tree); //add tree to forest
 	}
+
+	delete []rndIdx;
 }
 
 double OnlineIF::instanceScore(double *inst) {
