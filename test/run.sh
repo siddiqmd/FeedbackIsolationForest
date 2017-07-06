@@ -22,7 +22,7 @@ hostname
 # print date and time
 date
 
-../osu_iforest/iforest.exe -i /nfs/guille/bugid/adams/emmotta/bake_off/data/benchmarks/abalone/benchid_abalone{$SGE_TASK_ID}_* -o out/abalone$SGE_TASK_ID -t 250 -s 1000 -m 1-2
+../iforest.exe -i /nfs/guille/bugid/adams/emmotta/bake_off/data/benchmarks/abalone/benchid_abalone{$SGE_TASK_ID}_* -o out/abalone$SGE_TASK_ID -t 250 -s 1000 -m 1-2
 
 matlab -nojvm -nodisplay -nodesktop -nosplash -r "cd $PWD; getAUC('abalone$SGE_TASK_ID',5); exit;"
 
