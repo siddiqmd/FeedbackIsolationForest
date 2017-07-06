@@ -18,6 +18,6 @@ function auc = getAUCPatt(dataname, MAXF)
                 [~, ~, ~, result(iter,rep+1)] = perfcurve(LAB, DATA, 'anomaly');
 			end
         end
-        csvwrite(strcat('AUC.',dataname,'.',type{t},'.csv'), result);
+        csvwrite(strcat('auc/AUC.',dataname,'.',type{t},'.csv'), result);
     end
 end

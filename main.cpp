@@ -337,8 +337,8 @@ int main(int argc, char* argv[]) {
 
 	for(int iter = 0; iter < 10; iter++){
 		IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-	//	std::ofstream out("out/tree.txt");
-	//	iff.printStat(out);
+//		std::ofstream out("out/tree.txt");
+//		iff.printStat(out);
 
 		std::vector<double> scores = iff.AnomalyScore(dt);
 		sprintf(fname, "%s_iter%d_0.csv", output_name, iter+1);

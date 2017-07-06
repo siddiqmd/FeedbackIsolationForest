@@ -5,3 +5,4 @@
 
 ../iforest.exe -i data/benchid_abalone960_regression_hard_0.408320542605121_level-1_1.29685177578128_0.01_0.00997375328083989_s_1.2887236673124.csv -o out/abalone960 -t 100 -m 1-2
 
+../iforest.exe -i data/benchid_abalone17_regression_easy_0.0510321671111739_level-0_1_0.001_0.000529941706412295_s_NA.csv -o out/abalone15 -t 100 -m 1-2
