@@ -259,8 +259,8 @@ void sortByFeature(int fid, doubleframe* dt, ntstringframe* metadata) {
 		tp[i].q = metadata->data[i];
 	}
 	qsort(tp, dt->nrow, sizeof(tp[0]),
-			(int (*)(const void *, const void *))cmp);for
-(	int i = 0; i < dt->nrow; ++i) {
+			(int (*)(const void *, const void *))cmp);
+	for(int i = 0; i < dt->nrow; ++i) {
 		dt->data[i] = tp[i].p;
 		metadata->data[i] = tp[i].q;
 	}
@@ -295,6 +295,79 @@ void printScoreToFile(vector<double> &scores, const ntstringframe* metadata,
 	}
 	outscore.close();
 }
+
+void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
+		IsolationForest &iff, std::vector<double> &scores, int iter, char type[], char out_name[], int numfeed){
+	char fname[100];
+	int **freq = new int *[dt->ncol];
+	bool **marginalize = new bool *[dt->ncol];
+	for(int i = 0; i < dt->ncol; i++){
+		freq[i]	= new int[4];
+		marginalize[i] = new bool[4];
+		for(int j = 0; j < 4; j++)
+			marginalize[i][j] = false;
+	}
+
+	for(int rep = 0; rep < numfeed; rep++){
+		for(int i = 0; i < dt->ncol; i++)
+			for(int j = 0; j < 4; j++)
+				freq[i][j] = 0;
+
+		for(int top = 0; top < 100; top++){
+			double max = 0;
+			int midx = 0;
+			for(int i = 0; i < (int)scores.size(); i++){
+				if(scores[i] > max && strcmp(metadata->data[i][0], "nominal") == 0){
+					max = scores[i];
+					midx = i;
+				}
+			}
+			scores[midx] = 0;
+
+			std::vector<int> expl;
+			if(strcmp(type,"seq_marg") == 0)
+				expl = iff.getSeqMarExplanation(dt->data[midx], dt->ncol, marginalize, 1);
+			else if(strcmp(type,"seq_drop") == 0)
+				expl = iff.getSeqDropExplanation(dt->data[midx], dt->ncol, marginalize, 1);
+			else if(strcmp(type,"rev_seq_marg") == 0)
+				expl = iff.getRevSeqMarExplanation(dt->data[midx], dt->ncol, marginalize);
+			else if(strcmp(type,"rev_seq_drop") == 0)
+				expl = iff.getRevSeqDropExplanation(dt->data[midx], dt->ncol, marginalize);
+
+			int tf = expl[0];
+			int q = Tree::getQuantile(tf, dt->data[midx][tf]);
+			freq[tf][q]++;
+		}
+
+		int marg_feat = -1, q = -1;
+		int max = 0;
+		for(int i = 0; i < dt->ncol; i++){
+			for(int j = 0; j < 4; j++){
+				if(freq[i][j] > max){
+					max = freq[i][j];
+					marg_feat = i;
+					q = j;
+				}
+			}
+		}
+
+		marginalize[marg_feat][q] = true;
+		scores = iff.AnomalyScore(dt, marginalize);
+		std::cout << "Removed " << marg_feat << " " << q << "\n" << std::flush;
+		sprintf(fname, "%s_%s_iter%d_%d.csv", out_name, type, iter+1, rep+1);
+		printScoreToFile(scores, metadata, fname);
+	}
+
+	std::cout << "\n";
+
+	for(int i = 0; i < dt->ncol; i++){
+		delete []freq[i];
+		delete []marginalize[i];
+	}
+	delete []freq;
+	delete []marginalize;
+}
+
 
 int main(int argc, char* argv[]) {
 	std::time_t st = std::time(nullptr);
@@ -332,142 +405,36 @@ int main(int argc, char* argv[]) {
 		std::cout << "Using columns: " << dt->ncol << std::endl;
 	}
 
-	char fname[100], fname_marg[100], fname_drop[100];//, temp[100];
-	ofstream fout;
+	char fname[100], type[100];
+	int numFeedback = 10;
+
+	Tree::initialezeQuantiles(dt);
 
 	for(int iter = 0; iter < 10; iter++){
+		std::cout << "iter " << iter << "\n" << std::flush;
 		IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-//		std::ofstream out("out/tree.txt");
-//		iff.printStat(out);
 
 		std::vector<double> scores = iff.AnomalyScore(dt);
 		sprintf(fname, "%s_iter%d_0.csv", output_name, iter+1);
 		printScoreToFile(scores, metadata, fname);
 
-		strcpy(fname_marg, output_name);
-
-		bool *marginalize = new bool[dt->ncol];
-		for(int i = 0; i < dt->ncol; i++)
-			marginalize[i] = false;
-
-		for(int rep = 0; rep < 5; rep++){
-			int *freq = new int[dt->ncol];
-			for(int i = 0; i < dt->ncol; i++)
-				freq[i] = 0;
-
-			for(int top = 0; top < 100; top++){
-				double max = 0;
-				int midx = 0;
-				for(int i = 0; i < (int)scores.size(); i++){
-					if(scores[i] > max && strcmp(metadata->data[i][0], "nominal") == 0){
-						max = scores[i];
-						midx = i;
-					}
-				}
-	//			std::cout << midx << " ";
-				scores[midx] = 0;
-
-				std::vector<int> exp_seq_marg = iff.getSeqMarExplanation(dt->data[midx], dt->ncol, marginalize, 1);
-				freq[exp_seq_marg[0]]++;
-			}
-
-			int marg_feat = -1;
-			int max = 0;
-			for(int i = 0; i < dt->ncol; i++){
-				if(freq[i] > max){
-					max = freq[i];
-					marg_feat = i;
-				}
-			}
-
-			marginalize[marg_feat] = true;
-			scores = iff.AnomalyScore(dt, marginalize);
-	//		sprintf(temp, "_%d", marg_feat);
-	//		strcat(fname_marg, temp);
-			sprintf(fname, "%s_seq_marg_iter%d_%d.csv", fname_marg, iter+1, rep+1);
-			printScoreToFile(scores, metadata, fname);
-
-	//		cout << "\n";
-		}
+		strcpy(type, "seq_marg");
+		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
 		scores = iff.AnomalyScore(dt);
-		strcpy(fname_drop, output_name);
-		for(int i = 0; i < dt->ncol; i++)
-			marginalize[i] = false;
+		strcpy(type, "seq_drop");
+		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
-		for(int rep = 0; rep < 5; rep++){
-			int *freq = new int[dt->ncol];
-			for(int i = 0; i < dt->ncol; i++)
-				freq[i] = 0;
+		scores = iff.AnomalyScore(dt);
+		strcpy(type, "rev_seq_marg");
+		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
-			for(int top = 0; top < 100; top++){
-				double max = 0;
-				int midx = 0;
-				for(int i = 0; i < (int)scores.size(); i++){
-					if(scores[i] > max && strcmp(metadata->data[i][0], "nominal") == 0){
-						max = scores[i];
-						midx = i;
-					}
-				}
-	//			std::cout << midx << " ";
-				scores[midx] = 0;
-
-				std::vector<int> exp_seq_drop = iff.getSeqDropExplanation(dt->data[midx], dt->ncol, marginalize, 1);
-				freq[exp_seq_drop[0]]++;
-			}
-
-			int marg_feat = 0;
-			int max = 0;
-			for(int i = 0; i < dt->ncol; i++){
-				if(freq[i] > max){
-					max = freq[i];
-					marg_feat = i;
-				}
-			}
-
-			marginalize[marg_feat] = true;
-			scores = iff.AnomalyScore(dt, marginalize);
-	//		sprintf(temp, "_%d", marg_feat);
-	//		strcat(fname_drop, temp);
-			sprintf(fname, "%s_seq_drop_iter%d_%d.csv", fname_drop, iter+1, rep+1);
-			printScoreToFile(scores, metadata, fname);
-
-	//		cout << "\n";
-		}
+		scores = iff.AnomalyScore(dt);
+		strcpy(type, "rev_seq_drop");
+		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 	}
 
 	std::cout << "Time elapsed: " << std::time(nullptr) - st << " seconds";
-//	// sequential marginal
-//	sprintf(fname, "%s.SeqMarg.csv", output_name);
-//	fout.open(fname);
-//	fout << "groundtruth,anomalyscore";
-//	for(int i = 1; i <= dt->ncol; i++)
-//		fout << ",R" << i;
-//	fout << "\n";
-//	for(int i = 0; i < dt->nrow; i++){
-//		std::vector<int> explanation = iff.getSeqMarExplanation(dt->data[i], dt->ncol);
-//		fout << metadata->data[i][0] << "," << scores[i];
-//		for(int j = 0; j < (int)explanation.size(); j++)
-//			fout << "," << explanation[j]+1;
-//		fout << "\n";
-//	}
-//	fout.close();
-//
-//	// sequential dropout
-//	sprintf(fname, "%s.SeqDrop.csv", output_name);
-//	fout.open(fname);
-//	fout << "groundtruth,anomalyscore";
-//	for(int i = 1; i <= dt->ncol; i++)
-//		fout << ",R" << i;
-//	fout << "\n";
-//	for(int i = 0; i < dt->nrow; i++){
-//		std::vector<int> explanation = iff.getSeqDropExplanation(dt->data[i], dt->ncol);
-//		fout << metadata->data[i][0] << "," << scores[i];
-//		for(int j = 0; j < (int)explanation.size(); j++)
-//			fout << "," << explanation[j]+1;
-//		fout << "\n";
-//	}
-//	fout.close();
 
 	return 0;
 }

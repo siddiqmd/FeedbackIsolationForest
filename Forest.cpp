@@ -34,34 +34,45 @@ double Forest::instanceScore(double *inst) {
  * dim: dimension of the data i.e. number of features in inst
  * k: number of most important features to find
  */
-std::vector<int> Forest::getSeqMarExplanation(const double *inst, int dim, bool *exclude, int k){
+std::vector<int> Forest::getSeqMarExplanation(const double *inst, int dim, bool **exclude, int k){
 	if(k == 0) k = dim;
 	std::vector<int> explanation;
 	double temp, max;
-	int pick;
-	bool *marginalize = new bool[dim];
-	for(int i = 0; i < dim; ++i)
-		marginalize[i] = true;
+	int pick, pickQ;
+	bool **marginalize = new bool *[dim];
+	for(int i = 0; i < dim; ++i){
+		marginalize[i] = new bool[4];
+		for(int j = 0; j < 4; j++)
+			marginalize[i][j] = true;
+	}
 
 	for(int cnt = 0; cnt < k; cnt++){
 		max = -100;
 		pick = -1;
+		pickQ = -1;
 		for(int i = 0; i < dim; ++i){
-			if(marginalize[i] == false || exclude[i] == true)
+			int q = Tree::getQuantile(i, inst[i]);
+			if(marginalize[i][q] == false || exclude[i][q] == true)
 				continue;
-			marginalize[i] = false;
+			marginalize[i][q] = false;
 			temp = instanceMarginalScore(inst, marginalize);
-			marginalize[i] = true;
+			marginalize[i][q] = true;
 			if(temp > max){
 				max = temp;
 				pick = i;
+				pickQ = q;
 			}
 		}
-		explanation.push_back(pick);
-		marginalize[pick] = false;
+		if(pick >= 0){
+			explanation.push_back(pick);
+			marginalize[pick][pickQ] = false;
+		}
 	}
 
+	for(int i = 0; i < dim; ++i)
+		delete []marginalize[i];
 	delete []marginalize;
+
 	return explanation;
 }
 
@@ -71,34 +82,45 @@ std::vector<int> Forest::getSeqMarExplanation(const double *inst, int dim, bool 
  * dim: dimension of the data i.e. number of features in inst
  * k: number of most important features to find
  */
-std::vector<int> Forest::getSeqDropExplanation(const double *inst, int dim, bool *exclude, int k){
+std::vector<int> Forest::getSeqDropExplanation(const double *inst, int dim, bool **exclude, int k){
 	if(k == 0) k = dim;
 	std::vector<int> explanation;
 	double temp, min;
-	int pick;
-	bool *marginalize = new bool[dim];
-	for(int i = 0; i < dim; ++i)
-		marginalize[i] = false;
+	int pick, pickQ;
+	bool **marginalize = new bool *[dim];
+	for(int i = 0; i < dim; ++i){
+		marginalize[i] = new bool[4];
+		for(int j = 0; j < 4; j++)
+			marginalize[i][j] = false;
+	}
 
 	for(int cnt = 0; cnt < k; cnt++){
 		min = 100;
 		pick = -1;
+		pickQ = -1;
 		for(int i = 0; i < dim; ++i){
-			if(marginalize[i] == true || exclude[i] == true)
+			int q = Tree::getQuantile(i, inst[i]);
+			if(marginalize[i][q] == true || exclude[i][q] == true)
 				continue;
-			marginalize[i] = true;
+			marginalize[i][q] = true;
 			temp = instanceMarginalScore(inst, marginalize);
-			marginalize[i] = false;
+			marginalize[i][q] = false;
 			if(temp < min){
 				min = temp;
 				pick = i;
+				pickQ = q;
 			}
 		}
-		explanation.push_back(pick);
-		marginalize[pick] = true;
+		if(pick >= 0){
+			explanation.push_back(pick);
+			marginalize[pick][pickQ] = true;
+		}
 	}
 
+	for(int i = 0; i < dim; ++i)
+		delete []marginalize[i];
 	delete []marginalize;
+
 	return explanation;
 }
 
@@ -106,33 +128,43 @@ std::vector<int> Forest::getSeqDropExplanation(const double *inst, int dim, bool
  * Compute reverse sequential marginal explanation
  * inst: instance to be explained
  * dim: dimension of the data i.e. number of features in inst
- * k: number of most important features to find
+ * exclude: features/quantiles should excluded from explanation
  */
-std::vector<int> Forest::getRevSeqMarExplanation(const double *inst, int dim, int k){
+std::vector<int> Forest::getRevSeqMarExplanation(const double *inst, int dim, bool **exclude){
 	std::vector<int> explanation;
 	double temp, min;
-	int pick;
-	bool *marginalize = new bool[dim];
-	for(int i = 0; i < dim; ++i)
-		marginalize[i] = true;
+	int pick, pickQ;
+	bool **marginalize = new bool *[dim];
+	for(int i = 0; i < dim; ++i){
+		marginalize[i] = new bool[4];
+		for(int j = 0; j < 4; j++)
+			marginalize[i][j] = true;
+	}
 
 	for(int cnt = 0; cnt < dim; cnt++){
 		min = 100;
+		pick = -1;
+		pickQ = -1;
 		for(int i = 0; i < dim; ++i){
-			if(marginalize[i] == false)
+			int q = Tree::getQuantile(i, inst[i]);
+			if(marginalize[i][q] == false || exclude[i][q] == true)
 				continue;
-			marginalize[i] = false;
+			marginalize[i][q] = false;
 			temp = instanceMarginalScore(inst, marginalize);
-			marginalize[i] = true;
+			marginalize[i][q] = true;
 			if(temp < min){
 				min = temp;
 				pick = i;
+				pickQ = q;
 			}
 		}
-		explanation.push_back(pick);
-		marginalize[pick] = false;
+		if(pick >= 0){
+			explanation.push_back(pick);
+			marginalize[pick][pickQ] = false;
+		}
 	}
 
+	// Reverse explanation
 	int len = (int)explanation.size();
 	for(int i = 0; i < len/2; i++){
 		int temp = explanation[i];
@@ -140,7 +172,10 @@ std::vector<int> Forest::getRevSeqMarExplanation(const double *inst, int dim, in
 		explanation[len-i-1] = temp;
 	}
 
+	for(int i = 0; i < dim; ++i)
+		delete []marginalize[i];
 	delete []marginalize;
+
 	return explanation;
 }
 
@@ -148,33 +183,43 @@ std::vector<int> Forest::getRevSeqMarExplanation(const double *inst, int dim, in
  * Compute reverse sequential dropout explanation
  * inst: instance to be explained
  * dim: dimension of the data i.e. number of features in inst
- * k: number of most important features to find
+ * exclude: features/quantiles should excluded from explanation
  */
-std::vector<int> Forest::getRevSeqDropExplanation(const double *inst, int dim, int k){
+std::vector<int> Forest::getRevSeqDropExplanation(const double *inst, int dim, bool **exclude){
 	std::vector<int> explanation;
 	double temp, max;
-	int pick;
-	bool *marginalize = new bool[dim];
-	for(int i = 0; i < dim; ++i)
-		marginalize[i] = false;
+	int pick, pickQ;
+	bool **marginalize = new bool *[dim];
+	for(int i = 0; i < dim; ++i){
+		marginalize[i] = new bool[4];
+		for(int j = 0; j < 4; j++)
+			marginalize[i][j] = false;
+	}
 
 	for(int cnt = 0; cnt < dim; cnt++){
 		max = -100;
+		pick = -1;
+		pickQ = -1;
 		for(int i = 0; i < dim; ++i){
-			if(marginalize[i] == true)
+			int q = Tree::getQuantile(i, inst[i]);
+			if(marginalize[i][q] == true || exclude[i][q] == true)
 				continue;
-			marginalize[i] = true;
+			marginalize[i][q] = true;
 			temp = instanceMarginalScore(inst, marginalize);
-			marginalize[i] = false;
+			marginalize[i][q] = false;
 			if(temp > max){
 				max = temp;
 				pick = i;
+				pickQ = q;
 			}
 		}
-		explanation.push_back(pick);
-		marginalize[pick] = true;
+		if(pick >= 0){
+			explanation.push_back(pick);
+			marginalize[pick][pickQ] = true;
+		}
 	}
 
+	// Reverse explanation
 	int len = (int)explanation.size();
 	for(int i = 0; i < len/2; i++){
 		int temp = explanation[i];
@@ -182,11 +227,14 @@ std::vector<int> Forest::getRevSeqDropExplanation(const double *inst, int dim, i
 		explanation[len-i-1] = temp;
 	}
 
+	for(int i = 0; i < dim; ++i)
+		delete []marginalize[i];
 	delete []marginalize;
+
 	return explanation;
 }
 
-double Forest::instanceMarginalScore(const double *inst, const bool *marginalize){
+double Forest::instanceMarginalScore(const double *inst, bool **marginalize){
 	std::vector<double> depths;
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
@@ -309,7 +357,7 @@ std::vector<double> Forest::getScore(doubleframe *df, int type){
 /*
  * Score for  a set of dataframe in dataset
  */
-std::vector<double> Forest::AnomalyScore(const doubleframe* df, const bool *marginalize) {
+std::vector<double> Forest::AnomalyScore(const doubleframe* df, bool **marginalize) {
 	std::vector<double> scores;
 	//iterate through all points
 	for (int inst = 0; inst < df->nrow; inst++) {

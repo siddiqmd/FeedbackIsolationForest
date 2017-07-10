@@ -25,6 +25,8 @@ class Tree {
 	double volume;// store volume of this node in log scale
 	static std::vector<double> LB, UB;
 
+	static double **Qnt;
+
 public:
 	static bool checkRange;
 	static bool useVolumeForScore;
@@ -52,7 +54,7 @@ public:
 	void iTree(std::vector<int> const &dIndex, const doubleframe* dt,
 			int &maxHeight);
 	double pathLength(double *inst);
-	double pathLength(const double *inst, const bool *marginalize);
+	double pathLength(const double *inst, bool **marginalize);
 	// for online IF
 	void renewNodeSize();
 	void update(const double inst[]);
@@ -64,6 +66,9 @@ public:
 	double getPatternScoreAtDepth(double *inst, int depLim);
 
 	static void initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);
+	static void initialezeQuantiles(const doubleframe* dt);
+	static int getQuantile(int f, double p);
+
 };
 
 #endif /* TREE_H_ */

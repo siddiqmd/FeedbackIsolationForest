@@ -198,5 +198,11 @@ false) {
 	return scores;
 }
 
+int dblcmp(double *a, double *b) {
+	if (*a > *b) return 1;
+	if (*a < *b) return -1;
+	return 0;
+}
+
 /* UTITLITY_H_ */
 

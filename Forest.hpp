@@ -41,14 +41,14 @@ public:
 	void writeScoreDatabase(doubleframe *dtTestNorm, doubleframe *dtTestAnom, char fName[]);
 	void writeScores(doubleframe *dt, char fNamesuf[]);
 
-	std::vector<int> getSeqMarExplanation(const double *inst, int dim, bool *exclude, int k = 0);
-	std::vector<int> getSeqDropExplanation(const double *inst, int dim, bool *exclude, int k = 0);
-	std::vector<int> getRevSeqMarExplanation(const double *inst, int dim, int k = 0);
-	std::vector<int> getRevSeqDropExplanation(const double *inst, int dim, int k = 0);
+	std::vector<int> getSeqMarExplanation(const double *inst, int dim, bool **exclude, int k = 0);
+	std::vector<int> getSeqDropExplanation(const double *inst, int dim, bool **exclude, int k = 0);
+	std::vector<int> getRevSeqMarExplanation(const double *inst, int dim, bool **exclude);
+	std::vector<int> getRevSeqDropExplanation(const double *inst, int dim, bool **exclude);
 
-	virtual double instanceMarginalScore(const double *inst, const bool *marginalize);
+	virtual double instanceMarginalScore(const double *inst, bool **marginalize);
 	virtual double instanceScore(double *inst);
-	std::vector<double> AnomalyScore(const doubleframe* df, const bool *marginalize);
+	std::vector<double> AnomalyScore(const doubleframe* df, bool **marginalize);
 	std::vector<double> AnomalyScore(doubleframe* df);
 	virtual std::vector<double> pathLength(double *inst);
 	std::vector<std::vector<double> > pathLength(doubleframe* data);

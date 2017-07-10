@@ -11,6 +11,7 @@ bool Tree::checkRange = false;
 bool Tree::useVolumeForScore = false;
 std::vector<double> Tree::LB;
 std::vector<double> Tree::UB;
+double **Tree::Qnt;
 
 void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &maxheight){
 	this->nodeSize = dIndex.size(); // Set size of the node
@@ -180,12 +181,14 @@ double Tree::pathLength(double *inst) {
 }
 
 
-double Tree::pathLength(const double *inst, const bool *marginalize) {
+double Tree::pathLength(const double *inst, bool **marginalize) {
 	Tree *cur = this;
 	if(cur->leftChild == NULL && cur->rightChild == NULL)
 		return (cur->depth + avgPL(cur->nodeSize));
 
-	if(marginalize[cur->splittingAtt] == true){
+	int q = Tree::getQuantile(cur->splittingAtt, cur->splittingPoint);
+
+	if(marginalize[cur->splittingAtt][q] == true){
 		double ldepth = cur->leftChild->pathLength(inst, marginalize);
 		double rdepth = cur->rightChild->pathLength(inst, marginalize);
 		return 	(cur->leftChild->nodeSize / (double)cur->nodeSize) * ldepth +
@@ -289,4 +292,37 @@ void Tree::initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleInd
 		Tree::LB.push_back(min);
 		Tree::UB.push_back(max);
 	}
+}
+
+// Todo: delete memory allocated for Qnt
+void Tree::initialezeQuantiles(const doubleframe* dt){
+	// initialize Qnt
+	Qnt = new double *[dt->ncol];
+	for(int i = 0; i < dt->ncol; i++)
+		Qnt[i] = new double[3];
+
+	int q25 = (int)ceil(dt->nrow / 4.0),
+		q50 = (int)ceil(dt->nrow / 2.0),
+		q75 = (int)ceil(dt->nrow * 3 / 4.0);
+	double *temp = new double[dt->nrow];
+	for(int i = 0; i < dt->ncol; i++){
+		for(int j = 0; j < dt->nrow; j++)
+			temp[j] = dt->data[j][i];
+		qsort(temp, dt->nrow, sizeof(temp[0]), (int (*)(const void *, const void *))dblcmp);
+		Qnt[i][0] = temp[q25];
+		Qnt[i][1] = temp[q50];
+		Qnt[i][2] = temp[q75];
+	}
+	delete []temp;
+}
+
+int Tree::getQuantile(int f, double p){
+	int q = 3;
+	if(p < Qnt[f][0])
+		q = 0;
+	else if(Qnt[f][0] <= p && p < Qnt[f][1])
+		q = 1;
+	else if(Qnt[f][1] <= p && p < Qnt[f][2])
+		q = 2;
+	return q;
 }

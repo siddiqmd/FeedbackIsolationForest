@@ -56,6 +56,10 @@ bool weightToTail);
 extern std::ofstream logfile;
 extern std::string tmpVar;
 double score(double depth, int n);
+
+
+int dblcmp(double *a, double *b);
+
 //extern Data *dt;
 #endif
 /* UTITLITY_H_ */
