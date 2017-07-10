@@ -334,6 +334,9 @@ void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
 			else if(strcmp(type,"rev_seq_drop") == 0)
 				expl = iff.getRevSeqDropExplanation(dt->data[midx], dt->ncol, marginalize);
 
+			// Disregard this instance if no explanation found
+			if(expl.size() == 0) continue;
+
 			int tf = expl[0];
 			int q = Tree::getQuantile(tf, dt->data[midx][tf]);
 			freq[tf][q]++;
