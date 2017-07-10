@@ -353,7 +353,7 @@ void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
 
 		marginalize[marg_feat][q] = true;
 		scores = iff.AnomalyScore(dt, marginalize);
-		std::cout << "Removed " << marg_feat << " " << q << "\n" << std::flush;
+		std::cout <<"Feedback " << rep+1 << ": Removed " << marg_feat << " " << q << "\n" << std::flush;
 		sprintf(fname, "%s_%s_iter%d_%d.csv", out_name, type, iter+1, rep+1);
 		printScoreToFile(scores, metadata, fname);
 	}
@@ -411,15 +411,19 @@ int main(int argc, char* argv[]) {
 		sprintf(fname, "%s_iter%d_0.csv", output_name, iter+1);
 		printScoreToFile(scores, metadata, fname);
 
+		std::cout << "seq_marg\n" << std::flush;
 		strcpy(type, "seq_marg");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
+		std::cout << "seq_drop\n" << std::flush;
 		strcpy(type, "seq_drop");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
+		std::cout << "rev_seq_marg\n" << std::flush;
 		strcpy(type, "rev_seq_marg");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
+		std::cout << "rev_seq_drop\n" << std::flush;
 		strcpy(type, "rev_seq_drop");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 	}

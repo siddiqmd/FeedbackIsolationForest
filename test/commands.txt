@@ -9,4 +9,8 @@
 
 ../iforest.exe -i data/benchid_abalone960_regression_hard_0.408320542605121_level-1_1.29685177578128_0.01_0.00997375328083989_s_1.2887236673124.csv -o out/abalone960 -t 100 -m 1-2 -s 1000
 
-../iforest.exe -i data/ann_thyroid_1v3_1.csv -o out/ann_thyroid_1v3_1 -t 100 -m 1 -s 256
+../iforest.exe -i data/ann_thyroid_1v3_1.csv -o out/ann_thyroid_1v3_1 -t 100 -m 1 -s 256 -c 50
+
+../iforest.exe -i data/cardiotocography_1_1.csv -o out/cardiotocography_1_1 -t 100 -m 1 -s 256 -c 50
+
+../iforest.exe -i data/covtype_1.csv -o out/covtype_1 -t 100 -m 1 -s 256 -c 50
