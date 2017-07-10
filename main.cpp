@@ -383,8 +383,7 @@ int main(int argc, char* argv[]) {
 	bool header = pargs->header;
 //	bool verbose = pargs->verbose;
 	bool rsample = nsample != 0;
-	int useColumns = 0;
-//	int trainsampIdx = pargs->columns;//-c for train sample size option
+	int numFeedback = pargs->columns;//-c for train sample size option using for number of feedback
 //	std::cout << useColumns << std::endl;
 //	int windowSize = pargs->window_size;
 
@@ -398,27 +397,15 @@ int main(int argc, char* argv[]) {
 	std::cout << "# MaxHeight = " << maxheight << std::endl;
 	std::cout << "Original Data Dimension: " << dt->nrow << "," << dt->ncol
 			<< std::endl;
-
-	if (useColumns > 0 && dt->ncol > useColumns) {
-		doubleframe* temp = copyCols(dt, 0, useColumns - 1);
-		dt = temp;
-		std::cout << "Using columns: " << dt->ncol << std::endl;
-	}
+	std::cout << "# feedbacks = " << numFeedback << std::endl;
 
 	char fname[100], type[100];
-	int numFeedback = 10;
 
 	Tree::initialezeQuantiles(dt);
 
 	for(int iter = 0; iter < 10; iter++){
 		std::cout << "iter " << iter << "\n" << std::flush;
 		IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-
-//		// For debugging
-//		sprintf(fname, "out/tree%d.txt", iter);
-//		std::ofstream out(fname);
-//		iff.printStat(out);
-//		if(1 == 1) continue;
 
 		std::vector<double> scores = iff.AnomalyScore(dt);
 		sprintf(fname, "%s_iter%d_0.csv", output_name, iter+1);
@@ -437,7 +424,7 @@ int main(int argc, char* argv[]) {
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 	}
 
-	std::cout << "Time elapsed: " << std::time(nullptr) - st << " seconds";
+	std::cout << "Time elapsed: " << std::time(nullptr) - st << " seconds\n";
 
 	return 0;
 }
