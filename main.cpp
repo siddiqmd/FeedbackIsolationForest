@@ -297,7 +297,7 @@ void printScoreToFile(vector<double> &scores, const ntstringframe* metadata,
 }
 
 void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
-		IsolationForest &iff, std::vector<double> &scores, int iter, char type[], char out_name[], int numfeed){
+		IsolationForest &iff, std::vector<double> scores, int iter, char type[], char out_name[], int numfeed){
 	char fname[100];
 	int **freq = new int *[dt->ncol];
 	bool **marginalize = new bool *[dt->ncol];
@@ -414,6 +414,12 @@ int main(int argc, char* argv[]) {
 		std::cout << "iter " << iter << "\n" << std::flush;
 		IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
 
+//		// For debugging
+//		sprintf(fname, "out/tree%d.txt", iter);
+//		std::ofstream out(fname);
+//		iff.printStat(out);
+//		if(1 == 1) continue;
+
 		std::vector<double> scores = iff.AnomalyScore(dt);
 		sprintf(fname, "%s_iter%d_0.csv", output_name, iter+1);
 		printScoreToFile(scores, metadata, fname);
@@ -421,15 +427,12 @@ int main(int argc, char* argv[]) {
 		strcpy(type, "seq_marg");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
-		scores = iff.AnomalyScore(dt);
 		strcpy(type, "seq_drop");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
-		scores = iff.AnomalyScore(dt);
 		strcpy(type, "rev_seq_marg");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 
-		scores = iff.AnomalyScore(dt);
 		strcpy(type, "rev_seq_drop");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
 	}
