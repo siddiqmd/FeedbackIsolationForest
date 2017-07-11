@@ -314,15 +314,16 @@ void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
 				freq[i][j] = 0;
 
 		for(int top = 0; top < 100; top++){
-			double max = 0;
-			int midx = 0;
+			double max = -1;
+			int midx = -1;
 			for(int i = 0; i < (int)scores.size(); i++){
 				if(scores[i] > max && strcmp(metadata->data[i][0], "nominal") == 0){
 					max = scores[i];
 					midx = i;
 				}
 			}
-			scores[midx] = 0;
+
+			scores[midx] = -1;
 
 			std::vector<int> expl;
 			if(strcmp(type,"seq_marg") == 0)
@@ -353,6 +354,9 @@ void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
 				}
 			}
 		}
+
+		// stop if no feedback to give
+		if(marg_feat < 0 || q < 0) break;
 
 		marginalize[marg_feat][q] = true;
 		scores = iff.AnomalyScore(dt, marginalize);

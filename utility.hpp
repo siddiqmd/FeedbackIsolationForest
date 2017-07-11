@@ -20,9 +20,9 @@
 #include<algorithm>
 #include<map>
 #include<set>
-#include "cincl.hpp"
 #include<random>
 #include<utility>
+#include "cincl.hpp"
 /*
  struct Data
  {
