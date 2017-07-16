@@ -313,7 +313,7 @@ void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
 			for(int j = 0; j < 4; j++)
 				freq[i][j] = 0;
 
-		for(int top = 0; top < 100; top++){
+		for(int top = 0; top < 1; top++){
 			double max = -1;
 			int midx = -1;
 			for(int i = 0; i < (int)scores.size(); i++){
@@ -433,6 +433,78 @@ int main(int argc, char* argv[]) {
 		std::cout << "rev_seq_drop\n" << std::flush;
 		strcpy(type, "rev_seq_drop");
 		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
+
+		ofstream fout;
+		bool **marginalize = new bool *[dt->ncol];
+		for(int i = 0; i < dt->ncol; i++){
+			marginalize[i] = new bool[4];
+			for(int j = 0; j < 4; j++)
+				marginalize[i][j] = false;
+		}
+
+		// sequential marginal
+		sprintf(fname, "%s_iter%d.SeqMarg.csv", output_name, iter);
+		fout.open(fname);
+		fout << "groundtruth,anomalyscore";
+		for(int i = 1; i <= dt->ncol; i++)
+			fout << ",R" << i;
+		fout << "\n";
+		for(int i = 0; i < dt->nrow; i++){
+			std::vector<int> explanation = iff.getSeqMarExplanation(dt->data[i], dt->ncol, marginalize);
+			fout << metadata->data[i][0] << "," << scores[i];
+			for(int j = 0; j < (int)explanation.size(); j++)
+				fout << "," << explanation[j]+1;
+			fout << "\n";
+		}
+		fout.close();
+
+		// sequential dropout
+		sprintf(fname, "%s_iter%d.SeqDrop.csv", output_name, iter);
+		fout.open(fname);
+		fout << "groundtruth,anomalyscore";
+		for(int i = 1; i <= dt->ncol; i++)
+			fout << ",R" << i;
+		fout << "\n";
+		for(int i = 0; i < dt->nrow; i++){
+			std::vector<int> explanation = iff.getSeqDropExplanation(dt->data[i], dt->ncol, marginalize);
+			fout << metadata->data[i][0] << "," << scores[i];
+			for(int j = 0; j < (int)explanation.size(); j++)
+				fout << "," << explanation[j]+1;
+			fout << "\n";
+		}
+		fout.close();
+
+		// sequential rev marginal
+		sprintf(fname, "%s_iter%d.SeqRevMarg.csv", output_name, iter);
+		fout.open(fname);
+		fout << "groundtruth,anomalyscore";
+		for(int i = 1; i <= dt->ncol; i++)
+			fout << ",R" << i;
+		fout << "\n";
+		for(int i = 0; i < dt->nrow; i++){
+			std::vector<int> explanation = iff.getRevSeqMarExplanation(dt->data[i], dt->ncol, marginalize);
+			fout << metadata->data[i][0] << "," << scores[i];
+			for(int j = 0; j < (int)explanation.size(); j++)
+				fout << "," << explanation[j]+1;
+			fout << "\n";
+		}
+		fout.close();
+
+		// sequential rev dropout
+		sprintf(fname, "%s_iter%d.SeqRevDrop.csv", output_name, iter);
+		fout.open(fname);
+		fout << "groundtruth,anomalyscore";
+		for(int i = 1; i <= dt->ncol; i++)
+			fout << ",R" << i;
+		fout << "\n";
+		for(int i = 0; i < dt->nrow; i++){
+			std::vector<int> explanation = iff.getRevSeqDropExplanation(dt->data[i], dt->ncol, marginalize);
+			fout << metadata->data[i][0] << "," << scores[i];
+			for(int j = 0; j < (int)explanation.size(); j++)
+				fout << "," << explanation[j]+1;
+			fout << "\n";
+		}
+		fout.close();
 	}
 
 	std::cout << "Time elapsed: " << std::time(nullptr) - st << " seconds\n";
