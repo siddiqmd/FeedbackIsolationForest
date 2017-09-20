@@ -16,3 +16,12 @@
 
 ../iforest.exe -i data/covtype_1.csv -o out/covtype_1 -t 100 -m 1 -s 256 -c 50
 
+../iforest.exe -i data/in4.csv -o out/in4 -t 3 -s 256 -m 1 -c 3 -w 0
+
+../iforest.exe -i data/in3.csv -o out/in3 -t 3 -s 256 -m 1 -c 3 -w 0
+
+
+../iforest.exe -i data/cardiotocography_1_1.csv -o out/cardiotocography_1_1 -t 100 -s 256 -m 1 -c 3 -w 0
+
+../iforest.exe -i data/ann_thyroid_1v3_1.csv -o out/ann_thyroid_1v3_1 -t 100 -s 256 -m 1 -c 10
+

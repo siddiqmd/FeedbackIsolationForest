@@ -23,6 +23,7 @@ class Tree {
 	int newNodeSize; // new attribute for online IF
 	double minAttVal, maxAttVal;
 	double volume;// store volume of this node in log scale
+	double weight;// weight of this node in the weighted representation of the tree
 	static std::vector<double> LB, UB;
 
 	static double **Qnt;
@@ -44,6 +45,8 @@ public:
 		minAttVal = 0;
 		maxAttVal = 0;
 		volume = 0;
+		// initial weight is set to negative to interpret higher score as anomalous
+		weight = -1;
 	}
 
 	virtual ~Tree() {
@@ -64,11 +67,12 @@ public:
 	std::vector<double> getPatternScores(double *inst, int depLim = 10);
 	double getScoreAtDepth(double *inst, int depLim);
 	double getPatternScoreAtDepth(double *inst, int depLim);
+	double getScoreFromWeights(double *inst);
+	void updateWeights(double *inst, int direction, int type);
 
 	static void initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);
 	static void initialezeQuantiles(const doubleframe* dt);
 	static int getQuantile(int f, double p);
-
 };
 
 #endif /* TREE_H_ */

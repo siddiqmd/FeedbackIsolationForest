@@ -32,6 +32,7 @@
  */
 
 #include "main.hpp"
+#include<cfloat>
 using namespace std;
 //log file
 //ofstream logfile("treepath.csv");
@@ -296,6 +297,47 @@ void printScoreToFile(vector<double> &scores, const ntstringframe* metadata,
 	outscore.close();
 }
 
+struct Obj{
+    int idx;
+    double score;
+};
+int ObjCmp(Obj *a, Obj *b){
+    if(a->score < b->score) return 1;
+    if(a->score > b->score) return -1;
+    return 0;
+}
+
+void printScoreToFile(const vector<double> &scores, ntstringframe* csv,
+		const ntstringframe* metadata, const doubleframe *dt, char fName[]) {
+	ofstream outscore;
+	outscore.open(fName);
+	// print header
+	for(int i = 0; i < metadata->ncol; ++i)
+		outscore << metadata->colnames[i] << ",";
+	for(int i = 0; i < csv->ncol; ++i)
+        outscore << csv->colnames[i] << ",";
+
+	outscore << "anomaly_score\n";
+
+    Obj *idx = new Obj[scores.size()];
+	for (int i = 0; i < (int) scores.size(); i++) {
+        idx[i].idx = i;
+        idx[i].score = scores[i];
+    }
+    qsort(idx, scores.size(), sizeof(idx[0]),
+			(int (*)(const void *, const void *))ObjCmp);
+
+	for (int i = 0; i < (int) scores.size(); i++) {
+		for(int j = 0; j < metadata->ncol; ++j)
+			outscore << metadata->data[idx[i].idx][j] << ",";
+		for(int j = 0; j < dt->ncol; ++j)
+			outscore << dt->data[idx[i].idx][j] << ",";
+		outscore << scores[idx[i].idx] << "\n";
+	}
+	delete []idx;
+	outscore.close();
+}
+
 void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
 		IsolationForest &iff, std::vector<double> scores, int iter, char type[], char out_name[], int numfeed){
 	char fname[100];
@@ -391,121 +433,76 @@ int main(int argc, char* argv[]) {
 //	bool verbose = pargs->verbose;
 	bool rsample = nsample != 0;
 	int numFeedback = pargs->columns;//-c for train sample size option using for number of feedback
-//	std::cout << useColumns << std::endl;
-//	int windowSize = pargs->window_size;
+	if(numFeedback == 0)
+		numFeedback = 100;
+	int type = pargs->window_size;//-w for window_size option using as type of update
+	if(type == 512)
+		type = 0;
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
 	doubleframe* dt = conv_frame(double, ntstring, csv); //read data to the global variable
 	nsample = nsample == 0 ? dt->nrow : nsample;
 
-	std::cout << "# Trees     = " << ntree << std::endl;
-	std::cout << "# Samples   = " << nsample << std::endl;
-	std::cout << "# MaxHeight = " << maxheight << std::endl;
-	std::cout << "Original Data Dimension: " << dt->nrow << "," << dt->ncol
-			<< std::endl;
-	std::cout << "# feedbacks = " << numFeedback << std::endl;
+	std::cout << "# Trees          = " << ntree << std::endl;
+	std::cout << "# Samples        = " << nsample << std::endl;
+	std::cout << "MaxHeight        = " << maxheight << std::endl;
+	std::cout << "Orig Dimension   = " << dt->nrow << "," << dt->ncol << std::endl;
+	std::cout << "# Feedbacks      = " << numFeedback << std::endl;
+	std::cout << "Update type      = " << type << std::endl;
 
-	char fname[100], type[100];
-
-	Tree::initialezeQuantiles(dt);
-
-	for(int iter = 0; iter < 10; iter++){
-		std::cout << "iter " << iter << "\n" << std::flush;
+	int numIter = 10;
+//	char treeFile[100];
+	char fname[100], statFile[100];
+//	sprintf(treeFile, "%s_tree%d.txt", output_name, type);
+	sprintf(statFile, "%s_summary_feed%d_type%d.csv", output_name, numFeedback, type);
+//	ofstream tree(treeFile);
+	ofstream stats(statFile);
+	stats << "iter";
+	for(int i = 0; i < numFeedback; i++)
+		stats << ",feed" << i+1;
+	stats << "\n";
+	double sum = 0;
+	for(int iter = 0; iter < numIter; iter++){
+		stats << iter+1;
+		int numAnomFound = 0;
+		std::cout << "iter " << iter << ": ";
 		IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-
-		std::vector<double> scores = iff.AnomalyScore(dt);
-		sprintf(fname, "%s_iter%d_0.csv", output_name, iter+1);
-		printScoreToFile(scores, metadata, fname);
-
-		std::cout << "seq_marg\n" << std::flush;
-		strcpy(type, "seq_marg");
-		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
-
-		std::cout << "seq_drop\n" << std::flush;
-		strcpy(type, "seq_drop");
-		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
-
-		std::cout << "rev_seq_marg\n" << std::flush;
-		strcpy(type, "rev_seq_marg");
-		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
-
-		std::cout << "rev_seq_drop\n" << std::flush;
-		strcpy(type, "rev_seq_drop");
-		explanationFeedback(dt, metadata, iff, scores, iter, type, output_name, numFeedback);
-
-		ofstream fout;
-		bool **marginalize = new bool *[dt->ncol];
-		for(int i = 0; i < dt->ncol; i++){
-			marginalize[i] = new bool[4];
-			for(int j = 0; j < 4; j++)
-				marginalize[i][j] = false;
+		std::vector<int> gotFeedback;
+		for(int feed = 0; feed < numFeedback; feed++){
+			std::vector<double> scores = iff.anomalyScoreFromWeights(dt);
+//			iff.printStat(tree);
+			if(feed == 0 || feed == (numFeedback-1)){
+				sprintf(fname, "%s_iter%d_feed%d_type%d.csv", output_name, iter+1, feed, type);
+				printScoreToFile(scores, csv, metadata, dt, fname);
+			}
+			for(int j = 0; j < (int)gotFeedback.size(); j++)
+				scores[gotFeedback[j]] = -DBL_MAX;
+			double max = -DBL_MAX;
+			int maxInd = -1;
+			for(int i = 0; i < (int)scores.size(); i++){
+				if(max < scores[i]){
+					max = scores[i];
+					maxInd = i;
+				}
+			}
+//			std::cout << "maxIdx: " << maxInd << std::endl;
+			gotFeedback.push_back(maxInd);
+			int direction = -1;
+			if(strcmp(metadata->data[maxInd][0], "anomaly") == 0){
+				direction = 1;
+				numAnomFound++;
+			}
+			stats << "," << numAnomFound;
+			iff.updateWeights(dt->data[maxInd], direction, type);
 		}
-
-		// sequential marginal
-		sprintf(fname, "%s_iter%d.SeqMarg.csv", output_name, iter);
-		fout.open(fname);
-		fout << "groundtruth,anomalyscore";
-		for(int i = 1; i <= dt->ncol; i++)
-			fout << ",R" << i;
-		fout << "\n";
-		for(int i = 0; i < dt->nrow; i++){
-			std::vector<int> explanation = iff.getSeqMarExplanation(dt->data[i], dt->ncol, marginalize);
-			fout << metadata->data[i][0] << "," << scores[i];
-			for(int j = 0; j < (int)explanation.size(); j++)
-				fout << "," << explanation[j]+1;
-			fout << "\n";
-		}
-		fout.close();
-
-		// sequential dropout
-		sprintf(fname, "%s_iter%d.SeqDrop.csv", output_name, iter);
-		fout.open(fname);
-		fout << "groundtruth,anomalyscore";
-		for(int i = 1; i <= dt->ncol; i++)
-			fout << ",R" << i;
-		fout << "\n";
-		for(int i = 0; i < dt->nrow; i++){
-			std::vector<int> explanation = iff.getSeqDropExplanation(dt->data[i], dt->ncol, marginalize);
-			fout << metadata->data[i][0] << "," << scores[i];
-			for(int j = 0; j < (int)explanation.size(); j++)
-				fout << "," << explanation[j]+1;
-			fout << "\n";
-		}
-		fout.close();
-
-		// sequential rev marginal
-		sprintf(fname, "%s_iter%d.SeqRevMarg.csv", output_name, iter);
-		fout.open(fname);
-		fout << "groundtruth,anomalyscore";
-		for(int i = 1; i <= dt->ncol; i++)
-			fout << ",R" << i;
-		fout << "\n";
-		for(int i = 0; i < dt->nrow; i++){
-			std::vector<int> explanation = iff.getRevSeqMarExplanation(dt->data[i], dt->ncol, marginalize);
-			fout << metadata->data[i][0] << "," << scores[i];
-			for(int j = 0; j < (int)explanation.size(); j++)
-				fout << "," << explanation[j]+1;
-			fout << "\n";
-		}
-		fout.close();
-
-		// sequential rev dropout
-		sprintf(fname, "%s_iter%d.SeqRevDrop.csv", output_name, iter);
-		fout.open(fname);
-		fout << "groundtruth,anomalyscore";
-		for(int i = 1; i <= dt->ncol; i++)
-			fout << ",R" << i;
-		fout << "\n";
-		for(int i = 0; i < dt->nrow; i++){
-			std::vector<int> explanation = iff.getRevSeqDropExplanation(dt->data[i], dt->ncol, marginalize);
-			fout << metadata->data[i][0] << "," << scores[i];
-			for(int j = 0; j < (int)explanation.size(); j++)
-				fout << "," << explanation[j]+1;
-			fout << "\n";
-		}
-		fout.close();
+		stats << "\n";
+		std::cout << "# Anomaly: " << numAnomFound << std::endl;
+		sum += numAnomFound;
 	}
+	std::cout << "Avg: " << sum/numIter << std::endl;
+//	tree.close();
+	stats.close();
 
 	std::cout << "Time elapsed: " << std::time(nullptr) - st << " seconds\n";
 

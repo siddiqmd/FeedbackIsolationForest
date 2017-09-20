@@ -246,6 +246,31 @@ double Forest::instanceMarginalScore(const double *inst, bool **marginalize){
 	return scores;
 }
 
+double Forest::instanceScoreFromWeights(double *inst){
+	std::vector<double> sums;
+	for (std::vector<Tree*>::iterator it = this->trees.begin();
+			it != trees.end(); ++it) {
+		sums.push_back((*it)->getScoreFromWeights(inst));
+	}
+	double score = mean(sums);
+	return score;
+}
+
+std::vector<double> Forest::anomalyScoreFromWeights(doubleframe* df) {
+	std::vector<double> scores;
+	//iterate through all points
+	for (int inst = 0; inst < df->nrow; inst++) {
+		scores.push_back(instanceScoreFromWeights(df->data[inst]));
+	}
+	return scores;
+}
+
+void Forest::updateWeights(double *inst, int direction, int type){
+	for (std::vector<Tree*>::iterator it = this->trees.begin();
+			it != trees.end(); ++it) {
+		(*it)->updateWeights(inst, direction, type);
+	}
+}
 
 void Forest::writeScores(doubleframe *dt, char fName[]){
 	unsigned int MAX = 20;

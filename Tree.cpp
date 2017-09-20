@@ -127,6 +127,36 @@ std::vector<double> Tree::getPatternScores(double *inst, int depLim){
 	return ret;
 }
 
+double Tree::getScoreFromWeights(double *inst){
+	Tree *cur = this;
+	double score = 0;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+		score += cur->weight;
+	}
+	return score;
+}
+
+void Tree::updateWeights(double *inst, int direction, int type){
+	double change = 1;
+	Tree *cur = this;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+
+		cur->weight += direction * change;
+
+		// if exponential change
+		if(type == 1)
+			change *= 2;
+	}
+}
+
 /*
  * takes an instance as vector of double
  */
@@ -226,7 +256,7 @@ void Tree::printDepthAndNodeSize(std::ofstream &out){
 	for(int i = 0; i < depth; ++i)
 		out << "-";
 	out << "(" << depth
-		<< ", " << nodeSize << ", " << newNodeSize
+		<< ", " << nodeSize << ", " << weight
 		<< ", " << exp(volume)
 		<< ", " << splittingAtt
 		<< ", " << minAttVal
