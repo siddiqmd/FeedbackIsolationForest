@@ -307,6 +307,27 @@ int ObjCmp(Obj *a, Obj *b){
     return 0;
 }
 
+int printNoFeedbackAnomCntToFile(const vector<double> &scores, const ntstringframe* metadata,
+		ofstream &outscore, int numFeed) {
+    Obj *idx = new Obj[scores.size()];
+	for (int i = 0; i < (int) scores.size(); i++) {
+        idx[i].idx = i;
+        idx[i].score = scores[i];
+    }
+    qsort(idx, scores.size(), sizeof(idx[0]),
+			(int (*)(const void *, const void *))ObjCmp);
+
+    int numAnom = 0;
+	for (int i = 0; i < numFeed; i++) {
+		if(strcmp(metadata->data[idx[i].idx][0], "anomaly") == 0)
+			numAnom++;
+		outscore << "," << numAnom;
+	}
+	delete []idx;
+	return numAnom;
+}
+
+
 void printScoreToFile(const vector<double> &scores, ntstringframe* csv,
 		const ntstringframe* metadata, const doubleframe *dt, char fName[]) {
 	ofstream outscore;
@@ -435,9 +456,14 @@ int main(int argc, char* argv[]) {
 	int numFeedback = pargs->columns;//-c for train sample size option using for number of feedback
 	if(numFeedback == 0)
 		numFeedback = 100;
-	int type = pargs->window_size;//-w for window_size option using as type of update
-	if(type == 512)
-		type = 0;
+	int updateType = pargs->window_size;//-w for window_size option using as type of update
+	if(updateType == 512)
+		updateType = 0;
+	char type[100];
+	if(updateType == 0)
+		strcpy(type, "reg");
+	else
+		strcpy(type, "exp");
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
@@ -453,29 +479,41 @@ int main(int argc, char* argv[]) {
 
 	int numIter = 10;
 //	char treeFile[100];
-	char fname[100], statFile[100];
+//	char fname[100];
+	char statFile[100], statNoFeed[100];
 //	sprintf(treeFile, "%s_tree%d.txt", output_name, type);
-	sprintf(statFile, "%s_summary_feed%d_type%d.csv", output_name, numFeedback, type);
+	sprintf(statFile, "%s_summary_feed%d_type_%s.csv", output_name, numFeedback, type);
+	sprintf(statNoFeed, "%s_summary_feed%d_type_%s.csv", output_name, 0, type);
 //	ofstream tree(treeFile);
-	ofstream stats(statFile);
+	ofstream stats(statFile), statsNoFeed(statNoFeed);
 	stats << "iter";
-	for(int i = 0; i < numFeedback; i++)
+	statsNoFeed << "iter";
+	for(int i = 0; i < numFeedback; i++){
 		stats << ",feed" << i+1;
+		statsNoFeed << ",feed" << i+1;
+	}
 	stats << "\n";
-	double sum = 0;
+	statsNoFeed << "\n";
+	double sum = 0, sumBase = 0;
 	for(int iter = 0; iter < numIter; iter++){
 		stats << iter+1;
+		statsNoFeed << iter+1;
 		int numAnomFound = 0;
-		std::cout << "iter " << iter << ": ";
+		std::cout << "iter " << iter << ", # Anomaly: ";
 		IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
 		std::vector<int> gotFeedback;
 		for(int feed = 0; feed < numFeedback; feed++){
 			std::vector<double> scores = iff.anomalyScoreFromWeights(dt);
-//			iff.printStat(tree);
-			if(feed == 0 || feed == (numFeedback-1)){
-				sprintf(fname, "%s_iter%d_feed%d_type%d.csv", output_name, iter+1, feed, type);
-				printScoreToFile(scores, csv, metadata, dt, fname);
+			if(feed == 0){
+				int baseAnom = printNoFeedbackAnomCntToFile(scores, metadata, statsNoFeed, numFeedback);
+				std::cout << "Baseline -> " << baseAnom;
+				sumBase += baseAnom;
 			}
+//			iff.printStat(tree);
+//			if(feed == 0 || feed == (numFeedback-1)){
+//				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
+//				printScoreToFile(scores, csv, metadata, dt, fname);
+//			}
 			for(int j = 0; j < (int)gotFeedback.size(); j++)
 				scores[gotFeedback[j]] = -DBL_MAX;
 			double max = -DBL_MAX;
@@ -494,16 +532,17 @@ int main(int argc, char* argv[]) {
 				numAnomFound++;
 			}
 			stats << "," << numAnomFound;
-			iff.updateWeights(dt->data[maxInd], direction, type);
+			iff.updateWeights(dt->data[maxInd], direction, updateType);
 		}
 		stats << "\n";
-		std::cout << "# Anomaly: " << numAnomFound << std::endl;
+		statsNoFeed << "\n";
+		std::cout << " Feedback -> " << numAnomFound << std::endl;
 		sum += numAnomFound;
 	}
-	std::cout << "Avg: " << sum/numIter << std::endl;
+	std::cout << "Avg: Baseline -> " << sumBase/numIter << " Feedback -> " << sum/numIter<< std::endl;
 //	tree.close();
 	stats.close();
-
+	statsNoFeed.close();
 	std::cout << "Time elapsed: " << std::time(nullptr) - st << " seconds\n";
 
 	return 0;
