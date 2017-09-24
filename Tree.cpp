@@ -37,7 +37,10 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
 		attPool[rIdx] = attPool[attCnt];
 	}
 	delete []attPool;
-	if(attCnt <= 0) return; // no valid attribute found
+	if(attCnt <= 0){ // no valid attribute found
+		this->weight = -this->nodeSize;
+		return;
+	}
 
 	this->minAttVal = min;
 	this->maxAttVal = max;
@@ -149,7 +152,11 @@ void Tree::updateWeights(double *inst, int direction, int type){
 		else
 			cur = cur->rightChild;
 
-		cur->weight += direction * change;
+		// for leaf with multiple nodes change weights accordingly
+		if(cur->leftChild == NULL || cur->rightChild == NULL)
+			cur->weight += direction * cur->nodeSize * change;
+		else
+			cur->weight += direction * change;
 
 		// if exponential change
 		if(type == 1)

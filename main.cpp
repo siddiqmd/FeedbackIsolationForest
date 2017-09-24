@@ -481,7 +481,7 @@ int main(int argc, char* argv[]) {
 //	char treeFile[100];
 //	char fname[100];
 	char statFile[100], statNoFeed[100];
-//	sprintf(treeFile, "%s_tree%d.txt", output_name, type);
+//	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
 	sprintf(statFile, "%s_summary_feed%d_type_%s.csv", output_name, numFeedback, type);
 	sprintf(statNoFeed, "%s_summary_feed%d_type_%s.csv", output_name, 0, type);
 //	ofstream tree(treeFile);
@@ -509,7 +509,9 @@ int main(int argc, char* argv[]) {
 				std::cout << "Baseline -> " << baseAnom;
 				sumBase += baseAnom;
 			}
-//			iff.printStat(tree);
+//			if(feed == 0 || feed == (numFeedback-1)){
+//				iff.printStat(tree);
+//			}
 //			if(feed == 0 || feed == (numFeedback-1)){
 //				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
 //				printScoreToFile(scores, csv, metadata, dt, fname);
