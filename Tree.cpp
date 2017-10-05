@@ -143,8 +143,7 @@ double Tree::getScoreFromWeights(double *inst){
 	return score;
 }
 
-void Tree::updateWeights(double *inst, int direction, int type){
-	double change = 1;
+void Tree::updateWeights(double *inst, int direction, int type, double change){
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
 		if (inst[cur->splittingAtt] <= cur->splittingPoint)
@@ -161,6 +160,24 @@ void Tree::updateWeights(double *inst, int direction, int type){
 		// if exponential change
 		if(type == 1)
 			change *= 2;
+	}
+}
+
+void Tree::updateWeightsRunAvg(double *inst, int direction, double change){
+	Tree *cur = this;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+
+		// for leaf with multiple nodes change weights accordingly
+		if(cur->leftChild == NULL || cur->rightChild == NULL)
+			cur->weightUpd += direction * cur->nodeSize * change;
+		else
+			cur->weightUpd += direction * change;
+
+		cur->weight = (cur->weight + cur->weightUpd) / 2;
 	}
 }
 
@@ -313,7 +330,7 @@ void Tree::printPatternFreq(double inst[], int &tid, int &iid, std::ofstream &ou
 }
 
 
-void Tree::initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex){
+void Tree::initializeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex){
 	// initialize LBs and UBs
 	Tree::LB.clear();
 	Tree::UB.clear();
@@ -332,7 +349,7 @@ void Tree::initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleInd
 }
 
 // Todo: delete memory allocated for Qnt
-void Tree::initialezeQuantiles(const doubleframe* dt){
+void Tree::initializeQuantiles(const doubleframe* dt){
 	// initialize Qnt
 	Qnt = new double *[dt->ncol];
 	for(int i = 0; i < dt->ncol; i++)

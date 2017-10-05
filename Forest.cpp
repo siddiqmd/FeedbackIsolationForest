@@ -272,6 +272,13 @@ void Forest::updateWeights(double *inst, int direction, int type){
 	}
 }
 
+void Forest::updateWeightsRunAvg(double *inst, int direction){
+	for (std::vector<Tree*>::iterator it = this->trees.begin();
+			it != trees.end(); ++it) {
+		(*it)->updateWeightsRunAvg(inst, direction);
+	}
+}
+
 void Forest::writeScores(doubleframe *dt, char fName[]){
 	unsigned int MAX = 20;
 	std::ofstream outFile(fName);

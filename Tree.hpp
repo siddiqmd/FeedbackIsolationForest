@@ -24,6 +24,7 @@ class Tree {
 	double minAttVal, maxAttVal;
 	double volume;// store volume of this node in log scale
 	double weight;// weight of this node in the weighted representation of the tree
+	double weightUpd;// weight to be updated in case of moving average option is selected
 	static std::vector<double> LB, UB;
 
 	static double **Qnt;
@@ -47,6 +48,7 @@ public:
 		volume = 0;
 		// initial weight is set to negative to interpret higher score as anomalous
 		weight = -1;
+		weightUpd = -1;
 	}
 
 	virtual ~Tree() {
@@ -68,10 +70,11 @@ public:
 	double getScoreAtDepth(double *inst, int depLim);
 	double getPatternScoreAtDepth(double *inst, int depLim);
 	double getScoreFromWeights(double *inst);
-	void updateWeights(double *inst, int direction, int type);
+	void updateWeights(double *inst, int direction, int type, double change = 1);
+	void updateWeightsRunAvg(double *inst, int direction, double change = 1);
 
-	static void initialezeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);
-	static void initialezeQuantiles(const doubleframe* dt);
+	static void initializeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);
+	static void initializeQuantiles(const doubleframe* dt);
 	static int getQuantile(int f, double p);
 };
 

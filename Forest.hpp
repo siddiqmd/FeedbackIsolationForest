@@ -62,6 +62,7 @@ public:
 	void printStat(std::ofstream &out);
 	void printPatternFreq(const doubleframe *df, int n, std::ofstream &out);
 	void updateWeights(double *inst, int direction, int type);
+	void updateWeightsRunAvg(double *inst, int direction);
 	std::vector<double> anomalyScoreFromWeights(doubleframe* df);
 	double instanceScoreFromWeights(double *inst);
 };

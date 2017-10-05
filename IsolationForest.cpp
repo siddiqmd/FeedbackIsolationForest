@@ -22,7 +22,7 @@ IsolationForest::IsolationForest(int _ntree, doubleframe* _df, int _nsample,
 		sampleIndex.clear();
 		getSample(sampleIndex, nsample, rsample, _df->nrow, rndIdx);
 
-		Tree::initialezeLBandUB(_df, sampleIndex);
+		Tree::initializeLBandUB(_df, sampleIndex);
 
 		//build tree
 		Tree *tree = new Tree();

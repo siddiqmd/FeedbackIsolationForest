@@ -459,11 +459,21 @@ int main(int argc, char* argv[]) {
 	int updateType = pargs->window_size;//-w for window_size option using as type of update
 	if(updateType == 512)
 		updateType = 0;
+
 	char type[100];
+
 	if(updateType == 0)
 		strcpy(type, "reg");
-	else
+	else if(updateType == 1)
+		strcpy(type, "updMstk.reg");
+	else if(updateType == 2)
 		strcpy(type, "exp");
+	else if(updateType == 3)
+		strcpy(type, "updMstk.exp");
+	else if(updateType == 4)
+		strcpy(type, "runAvg");
+	else if(updateType == 5)
+		strcpy(type, "updMstk.runAvg");
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
@@ -534,7 +544,29 @@ int main(int argc, char* argv[]) {
 				numAnomFound++;
 			}
 			stats << "," << numAnomFound;
-			iff.updateWeights(dt->data[maxInd], direction, updateType);
+
+			if(updateType == 0){// regular weight update for both mistake and correct
+				iff.updateWeights(dt->data[maxInd], direction, 0);
+			}
+			else if(updateType == 1){
+				if(direction < 0)//regular weight update only for false positives
+					iff.updateWeights(dt->data[maxInd], direction, 0);
+			}
+			else if(updateType == 2){// exponential weight update both for mistake and correct
+				iff.updateWeights(dt->data[maxInd], direction, 1);
+			}
+			else if(updateType == 3){
+				if(direction < 0)//exponential weight update only for false positives
+					iff.updateWeights(dt->data[maxInd], direction, 1);
+			}
+			else if(updateType == 4){//running average weight update for both mistake and correct
+				iff.updateWeightsRunAvg(dt->data[maxInd], direction);
+			}
+			else if(updateType == 5){
+				if(direction < 0)//running average weight update only for false positives
+					iff.updateWeightsRunAvg(dt->data[maxInd], direction);
+			}
+
 		}
 		stats << "\n";
 		statsNoFeed << "\n";
