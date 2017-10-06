@@ -143,7 +143,19 @@ double Tree::getScoreFromWeights(double *inst){
 	return score;
 }
 
-void Tree::updateWeights(double *inst, int direction, int type, double change){
+void Tree::weightIndexedScore(std::vector<double> &scores){
+	if(this->depth > 0){
+		for(int i = 0; i < (int)this->instIdx.size(); i++)
+			scores[instIdx[i]] += this->weight;
+	}
+	if(this->leftChild == NULL || this->rightChild == NULL)
+		return;
+	this->leftChild->weightIndexedScore(scores);
+	this->rightChild->weightIndexedScore(scores);
+}
+
+void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change){
+	double prevWeight, delta;
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
 		if (inst[cur->splittingAtt] <= cur->splittingPoint)
@@ -151,11 +163,16 @@ void Tree::updateWeights(double *inst, int direction, int type, double change){
 		else
 			cur = cur->rightChild;
 
+		prevWeight = cur->weight;
 		// for leaf with multiple nodes change weights accordingly
 		if(cur->leftChild == NULL || cur->rightChild == NULL)
 			cur->weight += direction * cur->nodeSize * change;
 		else
 			cur->weight += direction * change;
+
+		delta = cur->weight - prevWeight;
+		for(int i = 0; i < (int)cur->instIdx.size(); i++)
+			scores[cur->instIdx[i]] += delta;
 
 		// if exponential change
 		if(type == 1)
@@ -163,7 +180,8 @@ void Tree::updateWeights(double *inst, int direction, int type, double change){
 	}
 }
 
-void Tree::updateWeightsRunAvg(double *inst, int direction, double change){
+void Tree::updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction, double change){
+	double prevWeight, delta;
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
 		if (inst[cur->splittingAtt] <= cur->splittingPoint)
@@ -177,8 +195,27 @@ void Tree::updateWeightsRunAvg(double *inst, int direction, double change){
 		else
 			cur->weightUpd += direction * change;
 
+		prevWeight = cur->weight;
 		cur->weight = (cur->weight + cur->weightUpd) / 2;
+
+		delta = cur->weight - prevWeight;
+		for(int i = 0; i < (int)cur->instIdx.size(); i++)
+			scores[cur->instIdx[i]] += delta;
+
 	}
+}
+
+void Tree::indexInstancesIntoNodes(std::vector<int> &idx, const doubleframe* df){
+	if(this->leftChild == NULL || this->rightChild == NULL)
+		return;
+	for(int i = 0; i < (int)idx.size(); i++){
+		if(df->data[idx[i]][this->splittingAtt] < this->splittingPoint)
+			this->leftChild->instIdx.push_back(idx[i]);
+		else
+			this->rightChild->instIdx.push_back(idx[i]);
+	}
+	this->leftChild->indexInstancesIntoNodes(this->leftChild->instIdx, df);
+	this->rightChild->indexInstancesIntoNodes(this->rightChild->instIdx, df);
 }
 
 /*

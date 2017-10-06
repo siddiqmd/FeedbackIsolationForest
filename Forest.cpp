@@ -265,17 +265,34 @@ std::vector<double> Forest::anomalyScoreFromWeights(doubleframe* df) {
 	return scores;
 }
 
-void Forest::updateWeights(double *inst, int direction, int type){
+void Forest::weightIndexedScore(std::vector<double> &scores){
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
-		(*it)->updateWeights(inst, direction, type);
+		(*it)->weightIndexedScore(scores);
 	}
 }
 
-void Forest::updateWeightsRunAvg(double *inst, int direction){
+void Forest::updateWeights(std::vector<double> &scores, double *inst, int direction, int type){
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
-		(*it)->updateWeightsRunAvg(inst, direction);
+		(*it)->updateWeights(scores, inst, direction, type);
+	}
+}
+
+void Forest::updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction){
+	for (std::vector<Tree*>::iterator it = this->trees.begin();
+			it != trees.end(); ++it) {
+		(*it)->updateWeightsRunAvg(scores, inst, direction);
+	}
+}
+
+void Forest::indexInstancesIntoNodes(const doubleframe* df){
+	std::vector<int> initIdx;
+	for(int i = 0; i < df->nrow; i++)
+		initIdx.push_back(i);
+	for (std::vector<Tree*>::iterator it = this->trees.begin();
+			it != trees.end(); ++it) {
+		(*it)->indexInstancesIntoNodes(initIdx, df);
 	}
 }
 

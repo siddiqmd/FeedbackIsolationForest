@@ -25,6 +25,7 @@ class Tree {
 	double volume;// store volume of this node in log scale
 	double weight;// weight of this node in the weighted representation of the tree
 	double weightUpd;// weight to be updated in case of moving average option is selected
+	std::vector<int> instIdx;// hold the index of data fall into this tree node
 	static std::vector<double> LB, UB;
 
 	static double **Qnt;
@@ -70,9 +71,10 @@ public:
 	double getScoreAtDepth(double *inst, int depLim);
 	double getPatternScoreAtDepth(double *inst, int depLim);
 	double getScoreFromWeights(double *inst);
-	void updateWeights(double *inst, int direction, int type, double change = 1);
-	void updateWeightsRunAvg(double *inst, int direction, double change = 1);
-
+	void weightIndexedScore(std::vector<double> &scores);
+	void updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change = 1);
+	void updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction, double change = 1);
+	void indexInstancesIntoNodes(std::vector<int> &idx, const doubleframe* df);
 	static void initializeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);
 	static void initializeQuantiles(const doubleframe* dt);
 	static int getQuantile(int f, double p);

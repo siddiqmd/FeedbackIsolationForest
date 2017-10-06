@@ -511,9 +511,12 @@ int main(int argc, char* argv[]) {
 		int numAnomFound = 0;
 		std::cout << "iter " << iter << ", # Anomaly: ";
 		IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
-		std::vector<int> gotFeedback;
+		iff.indexInstancesIntoNodes(dt);
+		std::vector<double> scores(dt->nrow, 0.0);
+		iff.weightIndexedScore(scores);
+		std::vector<bool> gotFeedback(dt->nrow, false);
+
 		for(int feed = 0; feed < numFeedback; feed++){
-			std::vector<double> scores = iff.anomalyScoreFromWeights(dt);
 			if(feed == 0){
 				int baseAnom = printNoFeedbackAnomCntToFile(scores, metadata, statsNoFeed, numFeedback);
 				std::cout << "Baseline -> " << baseAnom;
@@ -526,18 +529,16 @@ int main(int argc, char* argv[]) {
 //				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
 //				printScoreToFile(scores, csv, metadata, dt, fname);
 //			}
-			for(int j = 0; j < (int)gotFeedback.size(); j++)
-				scores[gotFeedback[j]] = -DBL_MAX;
 			double max = -DBL_MAX;
 			int maxInd = -1;
 			for(int i = 0; i < (int)scores.size(); i++){
-				if(max < scores[i]){
+				if(gotFeedback[i] == false && max < scores[i]){
 					max = scores[i];
 					maxInd = i;
 				}
 			}
 //			std::cout << "maxIdx: " << maxInd << std::endl;
-			gotFeedback.push_back(maxInd);
+			gotFeedback[maxInd] = true;
 			int direction = -1;
 			if(strcmp(metadata->data[maxInd][0], "anomaly") == 0){
 				direction = 1;
@@ -546,25 +547,25 @@ int main(int argc, char* argv[]) {
 			stats << "," << numAnomFound;
 
 			if(updateType == 0){// regular weight update for both mistake and correct
-				iff.updateWeights(dt->data[maxInd], direction, 0);
+				iff.updateWeights(scores, dt->data[maxInd], direction, 0);
 			}
 			else if(updateType == 1){
 				if(direction < 0)//regular weight update only for false positives
-					iff.updateWeights(dt->data[maxInd], direction, 0);
+					iff.updateWeights(scores, dt->data[maxInd], direction, 0);
 			}
 			else if(updateType == 2){// exponential weight update both for mistake and correct
-				iff.updateWeights(dt->data[maxInd], direction, 1);
+				iff.updateWeights(scores, dt->data[maxInd], direction, 1);
 			}
 			else if(updateType == 3){
 				if(direction < 0)//exponential weight update only for false positives
-					iff.updateWeights(dt->data[maxInd], direction, 1);
+					iff.updateWeights(scores, dt->data[maxInd], direction, 1);
 			}
 			else if(updateType == 4){//running average weight update for both mistake and correct
-				iff.updateWeightsRunAvg(dt->data[maxInd], direction);
+				iff.updateWeightsRunAvg(scores, dt->data[maxInd], direction);
 			}
 			else if(updateType == 5){
 				if(direction < 0)//running average weight update only for false positives
-					iff.updateWeightsRunAvg(dt->data[maxInd], direction);
+					iff.updateWeightsRunAvg(scores, dt->data[maxInd], direction);
 			}
 
 		}

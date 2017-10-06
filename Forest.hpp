@@ -61,9 +61,11 @@ public:
 			bool rSample, int nrow, int *rndIdx);
 	void printStat(std::ofstream &out);
 	void printPatternFreq(const doubleframe *df, int n, std::ofstream &out);
-	void updateWeights(double *inst, int direction, int type);
-	void updateWeightsRunAvg(double *inst, int direction);
+	void updateWeights(std::vector<double> &scores, double *inst, int direction, int type);
+	void updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction);
+	void indexInstancesIntoNodes(const doubleframe* df);
 	std::vector<double> anomalyScoreFromWeights(doubleframe* df);
+	void weightIndexedScore(std::vector<double> &scores);
 	double instanceScoreFromWeights(double *inst);
 };
 #endif /* FOREST_H_ */
