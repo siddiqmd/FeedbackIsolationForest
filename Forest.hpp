@@ -50,6 +50,7 @@ public:
 	virtual double instanceScore(double *inst);
 	std::vector<double> AnomalyScore(const doubleframe* df, bool **marginalize);
 	std::vector<double> AnomalyScore(doubleframe* df);
+	double getL2Norm2(double *inst);
 	virtual std::vector<double> pathLength(double *inst);
 	std::vector<std::vector<double> > pathLength(doubleframe* data);
 	std::vector<double> ADtest(
@@ -63,6 +64,7 @@ public:
 	void printPatternFreq(const doubleframe *df, int n, std::ofstream &out);
 	void updateWeights(std::vector<double> &scores, double *inst, int direction, int type);
 	void updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction);
+	void updateWeightsPassAggr(std::vector<double> &scores, double *inst, int direction, double change);
 	void indexInstancesIntoNodes(const doubleframe* df);
 	std::vector<double> anomalyScoreFromWeights(doubleframe* df);
 	void weightIndexedScore(std::vector<double> &scores);

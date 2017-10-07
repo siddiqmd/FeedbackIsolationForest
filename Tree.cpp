@@ -218,6 +218,17 @@ void Tree::indexInstancesIntoNodes(std::vector<int> &idx, const doubleframe* df)
 	this->rightChild->indexInstancesIntoNodes(this->rightChild->instIdx, df);
 }
 
+int Tree::getHighestDepth(double *inst){
+	Tree *cur = this;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+	}
+	return cur->depth;
+}
+
 /*
  * takes an instance as vector of double
  */

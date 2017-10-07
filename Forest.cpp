@@ -13,6 +13,14 @@ double Forest::getdepth(double* inst, Tree* tree) {
 	return tree->pathLength(inst);
 }
 
+double Forest::getL2Norm2(double *inst){
+	double l2norm2 = 0;
+	for(int i = 0; i < this->ntree; i++){
+		l2norm2 += this->trees[i]->getHighestDepth(inst);
+	}
+	return l2norm2;
+}
+
 /*
  * Accepts single point (row) and return Anomaly Score
  */
@@ -283,6 +291,13 @@ void Forest::updateWeightsRunAvg(std::vector<double> &scores, double *inst, int 
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
 		(*it)->updateWeightsRunAvg(scores, inst, direction);
+	}
+}
+
+void Forest::updateWeightsPassAggr(std::vector<double> &scores, double *inst, int direction, double change){
+	for (std::vector<Tree*>::iterator it = this->trees.begin();
+			it != trees.end(); ++it) {
+		(*it)->updateWeightsRunAvg(scores, inst, direction, change);
 	}
 }
 

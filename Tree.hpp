@@ -68,6 +68,7 @@ public:
 	void printPatternFreq(double inst[], int &tid, int &iid, std::ofstream &out);
 
 	std::vector<double> getPatternScores(double *inst, int depLim = 10);
+	int getHighestDepth(double *inst);
 	double getScoreAtDepth(double *inst, int depLim);
 	double getPatternScoreAtDepth(double *inst, int depLim);
 	double getScoreFromWeights(double *inst);

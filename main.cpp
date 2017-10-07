@@ -438,6 +438,17 @@ void explanationFeedback(doubleframe* dt, ntstringframe* metadata,
 	delete []marginalize;
 }
 
+double getQthPercentileScore(const std::vector<double> &scores, double q){
+	double *x = new double[scores.size()];
+	for(int i = 0; i < (int)scores.size(); i++)
+		x[i] = scores[i];
+	qsort(x, sizeof(x[0]), scores.size(), (int (*)(const void *, const void *))dblcmp);
+	int k = (int)ceil(scores.size()*q);
+//	std::cout << k << std::endl;
+	double quant = x[k-1];
+	delete []x;
+	return quant;
+}
 
 int main(int argc, char* argv[]) {
 	std::time_t st = std::time(nullptr);
@@ -474,6 +485,8 @@ int main(int argc, char* argv[]) {
 		strcpy(type, "runAvg");
 	else if(updateType == 5)
 		strcpy(type, "updMstk.runAvg");
+	else if(updateType == 6)
+		strcpy(type, "PA.runAvg");
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
@@ -566,6 +579,13 @@ int main(int argc, char* argv[]) {
 			else if(updateType == 5){
 				if(direction < 0)//running average weight update only for false positives
 					iff.updateWeightsRunAvg(scores, dt->data[maxInd], direction);
+			}
+			else if(updateType == 6){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
+				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
+				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
+				double loss = threshold - direction * scores[maxInd];
+				if(loss > 0)
+					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2);
 			}
 
 		}
