@@ -444,8 +444,7 @@ double getQthPercentileScore(const std::vector<double> &scores, double q){
 		x[i] = scores[i];
 	qsort(x, sizeof(x[0]), scores.size(), (int (*)(const void *, const void *))dblcmp);
 	int k = (int)ceil(scores.size()*q);
-//	std::cout << k << std::endl;
-	double quant = x[k-1];
+	double quant = x[scores.size()-k];
 	delete []x;
 	return quant;
 }
@@ -508,7 +507,7 @@ int main(int argc, char* argv[]) {
 
 	int numIter = 10;
 //	char treeFile[100];
-//	char fname[100];
+	char fname[100];
 	char statFile[100], statNoFeed[100];
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
 	sprintf(statFile, "%s_summary_feed%d_type_%s.csv", output_name, numFeedback, type);
@@ -533,6 +532,7 @@ int main(int argc, char* argv[]) {
 		iff.indexInstancesIntoNodes(dt);
 		std::vector<double> scores(dt->nrow, 0.0);
 		iff.weightIndexedScore(scores);
+		double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 		std::vector<bool> gotFeedback(dt->nrow, false);
 
 		for(int feed = 0; feed < numFeedback; feed++){
@@ -544,10 +544,10 @@ int main(int argc, char* argv[]) {
 //			if(feed == 0 || feed == (numFeedback-1)){
 //				iff.printStat(tree);
 //			}
-//			if(feed == 0 || feed == (numFeedback-1)){
-//				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
-//				printScoreToFile(scores, csv, metadata, dt, fname);
-//			}
+			if(feed == 0 || feed == (numFeedback-1)){
+				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
+				printScoreToFile(scores, csv, metadata, dt, fname);
+			}
 			double max = -DBL_MAX;
 			int maxInd = -1;
 			for(int i = 0; i < (int)scores.size(); i++){
@@ -587,28 +587,24 @@ int main(int argc, char* argv[]) {
 					iff.updateWeightsRunAvg(scores, dt->data[maxInd], direction);
 			}
 			else if(updateType == 6){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
-				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0)
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, false);
 			}
 			else if(updateType == 7){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
-				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0 && direction < 0)//update only on false positives
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, false);
 			}
 			else if(updateType == 8){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
-				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0)
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
 			}
 			else if(updateType == 9){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
-				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0 && direction < 0)//update only on false positives

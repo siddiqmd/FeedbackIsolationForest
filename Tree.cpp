@@ -209,7 +209,7 @@ void Tree::indexInstancesIntoNodes(std::vector<int> &idx, const doubleframe* df)
 	if(this->leftChild == NULL || this->rightChild == NULL)
 		return;
 	for(int i = 0; i < (int)idx.size(); i++){
-		if(df->data[idx[i]][this->splittingAtt] < this->splittingPoint)
+		if(df->data[idx[i]][this->splittingAtt] <= this->splittingPoint)
 			this->leftChild->instIdx.push_back(idx[i]);
 		else
 			this->rightChild->instIdx.push_back(idx[i]);
