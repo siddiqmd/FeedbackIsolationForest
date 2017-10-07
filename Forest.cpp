@@ -294,10 +294,13 @@ void Forest::updateWeightsRunAvg(std::vector<double> &scores, double *inst, int 
 	}
 }
 
-void Forest::updateWeightsPassAggr(std::vector<double> &scores, double *inst, int direction, double change){
+void Forest::updateWeightsPassAggr(std::vector<double> &scores, double *inst, int direction, double change, bool reg){
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
-		(*it)->updateWeightsRunAvg(scores, inst, direction, change);
+		if(reg == true)
+			(*it)->updateWeights(scores, inst, direction, 0, change);
+		else
+			(*it)->updateWeightsRunAvg(scores, inst, direction, change);
 	}
 }
 

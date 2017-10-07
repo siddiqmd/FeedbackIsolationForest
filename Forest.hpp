@@ -64,7 +64,7 @@ public:
 	void printPatternFreq(const doubleframe *df, int n, std::ofstream &out);
 	void updateWeights(std::vector<double> &scores, double *inst, int direction, int type);
 	void updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction);
-	void updateWeightsPassAggr(std::vector<double> &scores, double *inst, int direction, double change);
+	void updateWeightsPassAggr(std::vector<double> &scores, double *inst, int direction, double change, bool reg);
 	void indexInstancesIntoNodes(const doubleframe* df);
 	std::vector<double> anomalyScoreFromWeights(doubleframe* df);
 	void weightIndexedScore(std::vector<double> &scores);

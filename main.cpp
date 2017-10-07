@@ -487,6 +487,12 @@ int main(int argc, char* argv[]) {
 		strcpy(type, "updMstk.runAvg");
 	else if(updateType == 6)
 		strcpy(type, "PA.runAvg");
+	else if(updateType == 7)
+		strcpy(type, "updMstk.PA.runAvg");
+	else if(updateType == 8)
+		strcpy(type, "PA.reg");
+	else if(updateType == 9)
+		strcpy(type, "updMstk.PA.reg");
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
@@ -585,7 +591,28 @@ int main(int argc, char* argv[]) {
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0)
-					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2);
+					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, false);
+			}
+			else if(updateType == 7){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
+				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
+				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
+				double loss = threshold - direction * scores[maxInd];
+				if(loss > 0 && direction < 0)//update only on false positives
+					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, false);
+			}
+			else if(updateType == 8){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
+				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
+				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
+				double loss = threshold - direction * scores[maxInd];
+				if(loss > 0)
+					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
+			}
+			else if(updateType == 9){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
+				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
+				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
+				double loss = threshold - direction * scores[maxInd];
+				if(loss > 0 && direction < 0)//update only on false positives
+					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
 			}
 
 		}
