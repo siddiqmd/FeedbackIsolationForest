@@ -1,13 +1,14 @@
-#!/bin/csh
+#!/bin/bash
 
-../iforest.exe -i datasets/anomaly/abalone/fullsamples/abalone_1.csv -o out/abalone_1 -t 100 -s 256 -m 1
-../iforest.exe -i datasets/anomaly/ann_thyroid_1v3/fullsamples/ann_thyroid_1v3_1.csv -o out/ann_thyroid_1v3_1 -t 100 -s 256 -m 1
-../iforest.exe -i datasets/anomaly/cardiotocography_1/fullsamples/cardiotocography_1_1.csv -o out/cardiotocography_1_1 -t 100 -s 256 -m 1
-../iforest.exe -i datasets/anomaly/yeast/fullsamples/yeast_1.csv -o out/yeast_1 -t 100 -s 256 -m 1
-../iforest.exe -i datasets/anomaly/covtype/fullsamples/covtype_1.csv -o out/covtype_1 -t 100 -s 256 -m 1
+declare -a names=("abalone" "ann_thyroid_1v3" "cardiotocography_1" "yeast" "covtype" "kddcup" "mammography" "shuttle_1v23567")
+for dataset in "${names[@]}"
+do
+    echo "=============================="
+    echo $dataset
+    echo "=============================="
+    for w in 0 1 2 3 4 5 6 7 8 9
+    do
+        ../iforest.exe -i datasets/anomaly/$dataset/fullsamples/${dataset}_1.csv -o out/${dataset}_1 -t 100 -s 256 -m 1 -w $w
+    done
+done
 
-../iforest.exe -i datasets/anomaly/abalone/fullsamples/abalone_1.csv -o out/abalone_1 -t 100 -s 256 -m 1 -w 1
-../iforest.exe -i datasets/anomaly/ann_thyroid_1v3/fullsamples/ann_thyroid_1v3_1.csv -o out/ann_thyroid_1v3_1 -t 100 -s 256 -m 1 -w 1
-../iforest.exe -i datasets/anomaly/cardiotocography_1/fullsamples/cardiotocography_1_1.csv -o out/cardiotocography_1_1 -t 100 -s 256 -m 1 -w 1
-../iforest.exe -i datasets/anomaly/yeast/fullsamples/yeast_1.csv -o out/yeast_1 -t 100 -s 256 -m 1 -w 1
-../iforest.exe -i datasets/anomaly/covtype/fullsamples/covtype_1.csv -o out/covtype_1 -t 100 -s 256 -m 1 -w 1
