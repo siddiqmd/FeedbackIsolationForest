@@ -506,9 +506,9 @@ int main(int argc, char* argv[]) {
 	std::cout << "Update type      = " << type << std::endl;
 
 	int numIter = 10;
-//	char treeFile[100];
-	char fname[100];
-	char statFile[100], statNoFeed[100];
+//	char treeFile[1000];
+//	char fname[1000];
+	char statFile[1000], statNoFeed[1000];
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
 	sprintf(statFile, "%s_summary_feed%d_type_%s.csv", output_name, numFeedback, type);
 	sprintf(statNoFeed, "%s_summary_feed%d_type_%s.csv", output_name, 0, type);
@@ -544,10 +544,10 @@ int main(int argc, char* argv[]) {
 //			if(feed == 0 || feed == (numFeedback-1)){
 //				iff.printStat(tree);
 //			}
-			if(feed == 0 || feed == (numFeedback-1)){
-				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
-				printScoreToFile(scores, csv, metadata, dt, fname);
-			}
+//			if(feed == 0 || feed == (numFeedback-1)){
+//				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
+//				printScoreToFile(scores, csv, metadata, dt, fname);
+//			}
 			double max = -DBL_MAX;
 			int maxInd = -1;
 			for(int i = 0; i < (int)scores.size(); i++){
@@ -625,3 +625,4 @@ int main(int argc, char* argv[]) {
 
 	return 0;
 }
+
