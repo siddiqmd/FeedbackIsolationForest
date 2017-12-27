@@ -154,7 +154,7 @@ void Tree::weightIndexedScore(std::vector<double> &scores){
 	this->rightChild->weightIndexedScore(scores);
 }
 
-void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp){
+void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp, double reg){
 	double prevWeight, delta;
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
@@ -163,12 +163,19 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 		else
 			cur = cur->rightChild;
 
+		double regPen = 0;
+		if(reg != 0){
+			if(cur->weight + 1 > 0)
+				regPen = -1;
+			if(cur->weight + 1 < 0)
+				regPen = 1;
+		}
 		prevWeight = cur->weight;
 		// for leaf with multiple nodes change weights accordingly
 		if(cur->leftChild == NULL || cur->rightChild == NULL)
-			cur->weight += direction * cur->nodeSize * lrate * (1 - cur->nodeSize/nsamp);
+			cur->weight += direction * cur->nodeSize * lrate * (1 - cur->nodeSize/nsamp) + cur->nodeSize*reg*regPen;
 		else
-			cur->weight += direction * lrate * (1 - cur->nodeSize/nsamp);
+			cur->weight += direction * lrate * (1 - cur->nodeSize/nsamp) + reg * regPen;
 
 		delta = cur->weight - prevWeight;
 		for(int i = 0; i < (int)cur->instIdx.size(); i++)
@@ -177,7 +184,7 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 }
 
 
-void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change){
+void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change, double reg){
 	double prevWeight, delta;
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
@@ -186,12 +193,19 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 		else
 			cur = cur->rightChild;
 
+		double regPen = 0;
+		if(reg != 0){
+			if(cur->weight + 1 > 0)
+				regPen = -1;
+			if(cur->weight + 1 < 0)
+				regPen = 1;
+		}
 		prevWeight = cur->weight;
 		// for leaf with multiple nodes change weights accordingly
 		if(cur->leftChild == NULL || cur->rightChild == NULL)
-			cur->weight += direction * cur->nodeSize * change;
+			cur->weight += direction * cur->nodeSize * change + cur->nodeSize*reg*regPen;
 		else
-			cur->weight += direction * change;
+			cur->weight += direction * change + reg * regPen;
 
 		delta = cur->weight - prevWeight;
 		for(int i = 0; i < (int)cur->instIdx.size(); i++)

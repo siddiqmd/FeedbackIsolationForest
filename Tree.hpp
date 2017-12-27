@@ -73,8 +73,8 @@ public:
 	double getPatternScoreAtDepth(double *inst, int depLim);
 	double getScoreFromWeights(double *inst);
 	void weightIndexedScore(std::vector<double> &scores);
-	void updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp);
-	void updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change = 1);
+	void updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp, double reg = 0);
+	void updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change = 1, double reg = 0);
 	void updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction, double change = 1);
 	void indexInstancesIntoNodes(std::vector<int> &idx, const doubleframe* df);
 	static void initializeLBandUB(const doubleframe* _df, std::vector<int> &sampleIndex);

@@ -494,6 +494,10 @@ int main(int argc, char* argv[]) {
 		strcpy(type, "updMstk.PA.reg");
 	else if(updateType == 10)
 		strcpy(type, "llh");
+	else if(updateType == 11)
+		strcpy(type, "llhWithReg");
+	else if(updateType == 12)
+		strcpy(type, "regWithReg");
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
@@ -614,6 +618,12 @@ int main(int argc, char* argv[]) {
 			}
 			else if(updateType == 10){// Update from gradient of-log likelihood loss
 				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, 1.0*nsample);
+			}
+			else if(updateType == 11){// Update from gradient of-log likelihood loss with regularization
+				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, 1.0*nsample, 0.01);
+			}
+			else if(updateType == 12){// regular weight update with regularization
+				iff.updateWeights(scores, dt->data[maxInd], direction, 0, 1.0, 0.01);
 			}
 		}
 		stats << "\n";
