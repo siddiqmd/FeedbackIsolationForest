@@ -492,6 +492,8 @@ int main(int argc, char* argv[]) {
 		strcpy(type, "PA.reg");
 	else if(updateType == 9)
 		strcpy(type, "updMstk.PA.reg");
+	else if(updateType == 10)
+		strcpy(type, "llh");
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
@@ -610,7 +612,9 @@ int main(int argc, char* argv[]) {
 				if(loss > 0 && direction < 0)//update only on false positives
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
 			}
-
+			else if(updateType == 10){// Update from gradient of-log likelihood loss
+				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, 1.0*nsample);
+			}
 		}
 		stats << "\n";
 		statsNoFeed << "\n";

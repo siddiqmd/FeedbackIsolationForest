@@ -154,6 +154,29 @@ void Tree::weightIndexedScore(std::vector<double> &scores){
 	this->rightChild->weightIndexedScore(scores);
 }
 
+void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp){
+	double prevWeight, delta;
+	Tree *cur = this;
+	while(cur->leftChild != NULL || cur->rightChild != NULL){
+		if (inst[cur->splittingAtt] <= cur->splittingPoint)
+			cur = cur->leftChild;
+		else
+			cur = cur->rightChild;
+
+		prevWeight = cur->weight;
+		// for leaf with multiple nodes change weights accordingly
+		if(cur->leftChild == NULL || cur->rightChild == NULL)
+			cur->weight += direction * cur->nodeSize * lrate * (1 - cur->nodeSize/nsamp);
+		else
+			cur->weight += direction * lrate * (1 - cur->nodeSize/nsamp);
+
+		delta = cur->weight - prevWeight;
+		for(int i = 0; i < (int)cur->instIdx.size(); i++)
+			scores[cur->instIdx[i]] += delta;
+	}
+}
+
+
 void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change){
 	double prevWeight, delta;
 	Tree *cur = this;

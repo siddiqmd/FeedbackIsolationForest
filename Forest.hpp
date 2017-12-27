@@ -62,6 +62,7 @@ public:
 			bool rSample, int nrow, int *rndIdx);
 	void printStat(std::ofstream &out);
 	void printPatternFreq(const doubleframe *df, int n, std::ofstream &out);
+	void updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp);
 	void updateWeights(std::vector<double> &scores, double *inst, int direction, int type);
 	void updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction);
 	void updateWeightsPassAggr(std::vector<double> &scores, double *inst, int direction, double change, bool reg);
