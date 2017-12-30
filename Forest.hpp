@@ -62,11 +62,12 @@ public:
 			bool rSample, int nrow, int *rndIdx);
 	void printStat(std::ofstream &out);
 	void printPatternFreq(const doubleframe *df, int n, std::ofstream &out);
-	void updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp, double reg = 0);
+	void updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double reg = 0);
 	void updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change = 1, double reg = 0);
 	void updateWeightsRunAvg(std::vector<double> &scores, double *inst, int direction);
 	void updateWeightsPassAggr(std::vector<double> &scores, double *inst, int direction, double change, bool reg);
 	void indexInstancesIntoNodes(const doubleframe* df);
+	void computeMass(std::vector<double> &probScores);
 	std::vector<double> anomalyScoreFromWeights(doubleframe* df);
 	void weightIndexedScore(std::vector<double> &scores);
 	double instanceScoreFromWeights(double *inst);

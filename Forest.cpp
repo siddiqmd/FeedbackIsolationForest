@@ -280,10 +280,10 @@ void Forest::weightIndexedScore(std::vector<double> &scores){
 	}
 }
 
-void Forest::updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp, double reg){
+void Forest::updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double reg){
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
-		(*it)->updateWeights(scores, inst, direction, lrate, nsamp, reg);
+		(*it)->updateWeights(scores, inst, direction, lrate, reg);
 	}
 }
 
@@ -318,6 +318,15 @@ void Forest::indexInstancesIntoNodes(const doubleframe* df){
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
 		(*it)->indexInstancesIntoNodes(initIdx, df);
+	}
+}
+
+void Forest::computeMass(std::vector<double> &probScores){
+	for (std::vector<Tree*>::iterator it = this->trees.begin();
+			it != trees.end(); ++it) {
+		double res = (*it)->computeMass(probScores);
+		if(fabs(res-1) > 1e-15)
+			std::cout << "Error: " << res-1 << "\n";
 	}
 }
 

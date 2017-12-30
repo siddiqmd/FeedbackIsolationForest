@@ -154,7 +154,7 @@ void Tree::weightIndexedScore(std::vector<double> &scores){
 	this->rightChild->weightIndexedScore(scores);
 }
 
-void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double nsamp, double reg){
+void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double reg){
 	double prevWeight, delta;
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
@@ -173,9 +173,9 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 		prevWeight = cur->weight;
 		// for leaf with multiple nodes change weights accordingly
 		if(cur->leftChild == NULL || cur->rightChild == NULL)
-			cur->weight += direction * cur->nodeSize * lrate * (1 - cur->nodeSize/nsamp) + cur->nodeSize*reg*regPen;
+			cur->weight += direction * cur->nodeSize * lrate * (1 - cur->mass) + cur->nodeSize*reg*regPen;
 		else
-			cur->weight += direction * lrate * (1 - cur->nodeSize/nsamp) + reg * regPen;
+			cur->weight += direction * lrate * (1 - cur->mass) + reg * regPen;
 
 		delta = cur->weight - prevWeight;
 		for(int i = 0; i < (int)cur->instIdx.size(); i++)
@@ -253,6 +253,18 @@ void Tree::indexInstancesIntoNodes(std::vector<int> &idx, const doubleframe* df)
 	}
 	this->leftChild->indexInstancesIntoNodes(this->leftChild->instIdx, df);
 	this->rightChild->indexInstancesIntoNodes(this->rightChild->instIdx, df);
+}
+
+double Tree::computeMass(std::vector<double> &probScores){
+	if(this->leftChild == NULL || this->rightChild == NULL){
+		this->mass = 0;
+		for(int i = 0; i < (int)this->instIdx.size(); i++){
+			this->mass += probScores[this->instIdx[i]];
+		}
+	}else{
+		this->mass = this->leftChild->computeMass(probScores) + this->rightChild->computeMass(probScores);
+	}
+	return this->mass;
 }
 
 int Tree::getHighestDepth(double *inst){
@@ -366,11 +378,12 @@ void Tree::printDepthAndNodeSize(std::ofstream &out){
 		out << "-";
 	out << "(" << depth
 		<< ", " << nodeSize << ", " << weight
-		<< ", " << exp(volume)
-		<< ", " << splittingAtt
-		<< ", " << minAttVal
+//		<< ", " << exp(volume)
+//		<< ", " << splittingAtt
+//		<< ", " << minAttVal
 		<< ", " << splittingPoint
-		<< ", " << maxAttVal
+//		<< ", " << maxAttVal
+		<< ", " << mass
 		<< ")" << std::endl;
 	if(leftChild != NULL)
 		leftChild->printDepthAndNodeSize(out);

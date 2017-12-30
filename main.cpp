@@ -536,11 +536,9 @@ int main(int argc, char* argv[]) {
 		std::cout << "iter " << iter << ", # Anomaly: ";
 		IsolationForest iff(ntree, dt, nsample, maxheight, rsample);
 		iff.indexInstancesIntoNodes(dt);
-		std::vector<double> scores(dt->nrow, 0.0);
+		std::vector<double> scores(dt->nrow, 0.0), scoresNorm(dt->nrow, 0.0);
 		iff.weightIndexedScore(scores);
-		double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 		std::vector<bool> gotFeedback(dt->nrow, false);
-
 		for(int feed = 0; feed < numFeedback; feed++){
 			if(feed == 0){
 				int baseAnom = printNoFeedbackAnomCntToFile(scores, metadata, statsNoFeed, numFeedback);
@@ -554,6 +552,15 @@ int main(int argc, char* argv[]) {
 //				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
 //				printScoreToFile(scores, csv, metadata, dt, fname);
 //			}
+
+			// Normalize scores to make an anomaly distribution
+			double Z = 0;
+			for(int i = 0; i < (int)scores.size(); i++)
+				Z += exp(scores[i]);
+			for(int i = 0; i < (int)scores.size(); i++)
+				scoresNorm[i] = exp(scores[i]) / Z;
+			iff.computeMass(scoresNorm);
+
 			double max = -DBL_MAX;
 			int maxInd = -1;
 			for(int i = 0; i < (int)scores.size(); i++){
@@ -594,33 +601,37 @@ int main(int argc, char* argv[]) {
 			}
 			else if(updateType == 6){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
+				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0)
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, false);
 			}
 			else if(updateType == 7){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
+				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0 && direction < 0)//update only on false positives
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, false);
 			}
 			else if(updateType == 8){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
+				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0)
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
 			}
 			else if(updateType == 9){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
 				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
+				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
 				double loss = threshold - direction * scores[maxInd];
 				if(loss > 0 && direction < 0)//update only on false positives
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
 			}
 			else if(updateType == 10){// Update from gradient of-log likelihood loss
-				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, 1.0*nsample);
+				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0);
 			}
 			else if(updateType == 11){// Update from gradient of-log likelihood loss with regularization
-				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, 1.0*nsample, 0.01);
+				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, 0.01);
 			}
 			else if(updateType == 12){// regular weight update with regularization
 				iff.updateWeights(scores, dt->data[maxInd], direction, 0, 1.0, 0.01);
