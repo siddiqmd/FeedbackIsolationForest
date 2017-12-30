@@ -512,6 +512,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Update type      = " << type << std::endl;
 
 	int numIter = 10;
+	double REG = 0.5;
 //	char treeFile[1000];
 //	char fname[1000];
 	char statFile[1000], statNoFeed[1000];
@@ -554,9 +555,12 @@ int main(int argc, char* argv[]) {
 //			}
 
 			// Normalize scores to make an anomaly distribution
-			double Z = 0;
+			double Z = 0, MN = scores[0];
+			for(int i = 1; i < (int)scores.size(); i++){
+				if(scores[i] < MN) MN = scores[i];
+			}
 			for(int i = 0; i < (int)scores.size(); i++){
-				scoresNorm[i] = scores[i] > 695 ? exp(695) : exp(scores[i]);
+				scoresNorm[i] = scores[i] - MN;
 				Z += scoresNorm[i];
 			}
 			for(int i = 0; i < (int)scores.size(); i++)
@@ -633,10 +637,10 @@ int main(int argc, char* argv[]) {
 				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0);
 			}
 			else if(updateType == 11){// Update from gradient of-log likelihood loss with regularization
-				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, 0.01);
+				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, REG);
 			}
 			else if(updateType == 12){// regular weight update with regularization
-				iff.updateWeights(scores, dt->data[maxInd], direction, 0, 1.0, 0.01);
+				iff.updateWeights(scores, dt->data[maxInd], direction, 0, 1.0, REG);
 			}
 		}
 		stats << "\n";
