@@ -38,7 +38,7 @@ void Tree::iTree(std::vector<int> const &dIndex, const doubleframe *dt, int &max
 	}
 	delete []attPool;
 	if(attCnt <= 0){ // no valid attribute found
-		this->weight = -this->nodeSize;
+		this->weight = this->nodeSize;
 		return;
 	}
 
@@ -165,9 +165,9 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 
 		double regPen = 0;
 		if(reg != 0){
-			if(cur->weight + 1 > 0)
+			if(cur->weight - 1 > 0)
 				regPen = -1;
-			if(cur->weight + 1 < 0)
+			if(cur->weight - 1 < 0)
 				regPen = 1;
 		}
 		prevWeight = cur->weight;
@@ -195,9 +195,9 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 
 		double regPen = 0;
 		if(reg != 0){
-			if(cur->weight + 1 > 0)
+			if(cur->weight - 1 > 0)
 				regPen = -1;
-			if(cur->weight + 1 < 0)
+			if(cur->weight - 1 < 0)
 				regPen = 1;
 		}
 		prevWeight = cur->weight;
