@@ -555,10 +555,12 @@ int main(int argc, char* argv[]) {
 
 			// Normalize scores to make an anomaly distribution
 			double Z = 0;
+			for(int i = 0; i < (int)scores.size(); i++){
+				scoresNorm[i] = scores[i] > 695 ? exp(695) : exp(scores[i]);
+				Z += scoresNorm[i];
+			}
 			for(int i = 0; i < (int)scores.size(); i++)
-				Z += exp(scores[i]);
-			for(int i = 0; i < (int)scores.size(); i++)
-				scoresNorm[i] = exp(scores[i]) / Z;
+				scoresNorm[i] = scoresNorm[i] / Z;
 			iff.computeMass(scoresNorm);
 
 			double max = -DBL_MAX;

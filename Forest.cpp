@@ -324,9 +324,10 @@ void Forest::indexInstancesIntoNodes(const doubleframe* df){
 void Forest::computeMass(std::vector<double> &probScores){
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
-		double res = (*it)->computeMass(probScores);
-		if(fabs(res-1) > 1e-15)
-			std::cout << "Error: " << res-1 << "\n";
+		(*it)->computeMass(probScores);
+//		double res = (*it)->computeMass(probScores);
+//		if(fabs(res-1) > 1e-15)
+//			std::cout << "Error: " << res-1 << "\n";
 	}
 }
 
