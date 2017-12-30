@@ -49,7 +49,7 @@ public:
 		maxAttVal = 0;
 		volume = 0;
 		// initial weight is set to negative to interpret higher score as anomalous
-		weight = -1;
+		weight = 1;// initial weight changed to 1 to make it a cost (previously -1)
 		weightUpd = -1;
 		mass = 0;
 	}

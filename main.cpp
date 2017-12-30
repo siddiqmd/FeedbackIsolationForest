@@ -302,8 +302,8 @@ struct Obj{
     double score;
 };
 int ObjCmp(Obj *a, Obj *b){
-    if(a->score < b->score) return 1;
-    if(a->score > b->score) return -1;
+    if(a->score > b->score) return 1;
+    if(a->score < b->score) return -1;
     return 0;
 }
 
@@ -567,19 +567,19 @@ int main(int argc, char* argv[]) {
 				scoresNorm[i] = scoresNorm[i] / Z;
 			iff.computeMass(scoresNorm);
 
-			double max = -DBL_MAX;
+			double min = DBL_MAX;
 			int maxInd = -1;
 			for(int i = 0; i < (int)scores.size(); i++){
-				if(gotFeedback[i] == false && max < scores[i]){
-					max = scores[i];
+				if(gotFeedback[i] == false && min > scores[i]){
+					min = scores[i];
 					maxInd = i;
 				}
 			}
 //			std::cout << "maxIdx: " << maxInd << std::endl;
 			gotFeedback[maxInd] = true;
-			int direction = -1;
+			int direction = 1;
 			if(strcmp(metadata->data[maxInd][0], "anomaly") == 0){
-				direction = 1;
+				direction = -1;
 				numAnomFound++;
 			}
 			stats << "," << numAnomFound;
@@ -656,4 +656,3 @@ int main(int argc, char* argv[]) {
 
 	return 0;
 }
-
