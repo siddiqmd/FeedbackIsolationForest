@@ -21,6 +21,13 @@ double Forest::getL2Norm2(double *inst){
 	return l2norm2;
 }
 
+double Forest::getL1NormofWeights(){
+	double L1norm = 0;
+	for(int i = 0; i < this->ntree; i++){
+		L1norm += this->trees[i]->getL1NormofWeights();
+	}
+	return L1norm;
+}
 /*
  * Accepts single point (row) and return Anomaly Score
  */

@@ -449,6 +449,20 @@ double getQthPercentileScore(const std::vector<double> &scores, double q){
 	return quant;
 }
 
+// Normalize scores to make an anomaly distribution
+void normalizeScore(std::vector<double> &scores, std::vector<double> &scoresNorm){
+	double Z = 0, MX = scores[0];
+	for(int i = 1; i < (int)scores.size(); i++){
+		if(scores[i] > MX) MX = scores[i];
+	}
+	for(int i = 0; i < (int)scores.size(); i++){
+		scoresNorm[i] = MX - scores[i];
+		Z += scoresNorm[i];
+	}
+	for(int i = 0; i < (int)scores.size(); i++)
+		scoresNorm[i] = scoresNorm[i] / Z;
+}
+
 int main(int argc, char* argv[]) {
 	std::time_t st = std::time(nullptr);
 	srand(0); //randomize for random number generator.
@@ -504,18 +518,23 @@ int main(int argc, char* argv[]) {
 	doubleframe* dt = conv_frame(double, ntstring, csv); //read data to the global variable
 	nsample = nsample == 0 ? dt->nrow : nsample;
 
+	// Parameters
+	int numIter = 1;
+	double REG = 0.01;
+
+	std::cout << "# Iterations     = " << numIter << std::endl;
 	std::cout << "# Trees          = " << ntree << std::endl;
 	std::cout << "# Samples        = " << nsample << std::endl;
 	std::cout << "MaxHeight        = " << maxheight << std::endl;
 	std::cout << "Orig Dimension   = " << dt->nrow << "," << dt->ncol << std::endl;
 	std::cout << "# Feedbacks      = " << numFeedback << std::endl;
 	std::cout << "Update type      = " << type << std::endl;
+	std::cout << "Reg. Constant    = " << REG << std::endl;
 
-	int numIter = 10;
-	double REG = 0.5;
 //	char treeFile[1000];
-//	char fname[1000];
+	char fname[1000];
 	char statFile[1000], statNoFeed[1000];
+	double costBefore[100], costAfter[100], avgcostBefore[100], avgcostAfter[100];
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
 	sprintf(statFile, "%s_summary_feed%d_type_%s.csv", output_name, numFeedback, type);
 	sprintf(statNoFeed, "%s_summary_feed%d_type_%s.csv", output_name, 0, type);
@@ -529,6 +548,16 @@ int main(int argc, char* argv[]) {
 	}
 	stats << "\n";
 	statsNoFeed << "\n";
+
+	char costFile[1000];
+	sprintf(costFile, "%s_cost_type_%s.csv", output_name, type);
+	ofstream costs(costFile);
+	costs << "iter";
+	for(int i = 0; i < numFeedback; i++){
+		costs << ",feed" << i+1;
+	}
+	costs << "\n";
+
 	double sum = 0, sumBase = 0;
 	for(int iter = 0; iter < numIter; iter++){
 		stats << iter+1;
@@ -539,7 +568,10 @@ int main(int argc, char* argv[]) {
 		iff.indexInstancesIntoNodes(dt);
 		std::vector<double> scores(dt->nrow, 0.0), scoresNorm(dt->nrow, 0.0);
 		iff.weightIndexedScore(scores);
+		normalizeScore(scores, scoresNorm);
+		iff.computeMass(scoresNorm);
 		std::vector<bool> gotFeedback(dt->nrow, false);
+		std::vector<int> feedbackIdx;
 		for(int feed = 0; feed < numFeedback; feed++){
 			if(feed == 0){
 				int baseAnom = printNoFeedbackAnomCntToFile(scores, metadata, statsNoFeed, numFeedback);
@@ -549,23 +581,10 @@ int main(int argc, char* argv[]) {
 //			if(feed == 0 || feed == (numFeedback-1)){
 //				iff.printStat(tree);
 //			}
-//			if(feed == 0 || feed == (numFeedback-1)){
-//				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
-//				printScoreToFile(scores, csv, metadata, dt, fname);
-//			}
-
-			// Normalize scores to make an anomaly distribution
-			double Z = 0, MN = scores[0];
-			for(int i = 1; i < (int)scores.size(); i++){
-				if(scores[i] < MN) MN = scores[i];
+			if(feed == 0 || feed == (numFeedback-1)){
+				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
+				printScoreToFile(scores, csv, metadata, dt, fname);
 			}
-			for(int i = 0; i < (int)scores.size(); i++){
-				scoresNorm[i] = scores[i] - MN;
-				Z += scoresNorm[i];
-			}
-			for(int i = 0; i < (int)scores.size(); i++)
-				scoresNorm[i] = scoresNorm[i] / Z;
-			iff.computeMass(scoresNorm);
 
 			double min = DBL_MAX;
 			int maxInd = -1;
@@ -577,15 +596,30 @@ int main(int argc, char* argv[]) {
 			}
 //			std::cout << "maxIdx: " << maxInd << std::endl;
 			gotFeedback[maxInd] = true;
-			int direction = 1;
+			feedbackIdx.push_back(maxInd);
+			int direction = -1;
 			if(strcmp(metadata->data[maxInd][0], "anomaly") == 0){
-				direction = -1;
+				direction = 1;
 				numAnomFound++;
 			}
 			stats << "," << numAnomFound;
 
 			if(updateType == 0){// regular weight update for both mistake and correct
-				iff.updateWeights(scores, dt->data[maxInd], direction, 0);
+				costBefore[feed] = direction * scores[maxInd];
+				avgcostBefore[feed] = 0;
+				for(int i = 0; i < (int)feedbackIdx.size(); i++)
+					avgcostBefore[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
+							scores[feedbackIdx[i]] : -scores[feedbackIdx[i]];
+				avgcostBefore[feed] /= feedbackIdx.size();
+
+				iff.updateWeights(scores, dt->data[maxInd], -direction, 0);
+
+				costAfter[feed] = direction * scores[maxInd];
+				avgcostAfter[feed] = 0;
+				for(int i = 0; i < (int)feedbackIdx.size(); i++)
+					avgcostAfter[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
+							scores[feedbackIdx[i]] : -scores[feedbackIdx[i]];
+				avgcostAfter[feed] /= feedbackIdx.size();
 			}
 			else if(updateType == 1){
 				if(direction < 0)//regular weight update only for false positives
@@ -634,24 +668,96 @@ int main(int argc, char* argv[]) {
 					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
 			}
 			else if(updateType == 10){// Update from gradient of-log likelihood loss
-				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0);
+				costBefore[feed] = (-direction) * log(scoresNorm[maxInd]);
+				avgcostBefore[feed] = 0;
+				for(int i = 0; i < (int)feedbackIdx.size(); i++)
+					avgcostBefore[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
+							-log(scoresNorm[feedbackIdx[i]]) : log(scoresNorm[feedbackIdx[i]]);
+				avgcostBefore[feed] /= feedbackIdx.size();
+
+				iff.updateWeights(scores, dt->data[maxInd], -direction, 1.0);
+				normalizeScore(scores, scoresNorm);
+				iff.computeMass(scoresNorm);
+
+				costAfter[feed] = (-direction) * log(scoresNorm[maxInd]);
+				avgcostAfter[feed] = 0;
+				for(int i = 0; i < (int)feedbackIdx.size(); i++)
+					avgcostAfter[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
+							-log(scoresNorm[feedbackIdx[i]]) : log(scoresNorm[feedbackIdx[i]]);
+				avgcostAfter[feed] /= feedbackIdx.size();
 			}
 			else if(updateType == 11){// Update from gradient of-log likelihood loss with regularization
-				iff.updateWeights(scores, dt->data[maxInd], direction, 1.0, REG);
+				double l1norm = iff.getL1NormofWeights();
+				costBefore[feed] = (-direction) * log(scoresNorm[maxInd]) + REG * l1norm;
+				avgcostBefore[feed] = 0;
+				for(int i = 0; i < (int)feedbackIdx.size(); i++)
+					avgcostBefore[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
+							-log(scoresNorm[feedbackIdx[i]]) : log(scoresNorm[feedbackIdx[i]]);
+				avgcostBefore[feed] += feedbackIdx.size() * REG * l1norm;
+				avgcostBefore[feed] /= feedbackIdx.size();
+
+				iff.updateWeights(scores, dt->data[maxInd], -direction, 1.0, REG);
+				normalizeScore(scores, scoresNorm);
+				iff.computeMass(scoresNorm);
+
+				l1norm = iff.getL1NormofWeights();
+				costAfter[feed] = (-direction) * log(scoresNorm[maxInd]) + REG * l1norm;
+				avgcostAfter[feed] = 0;
+				for(int i = 0; i < (int)feedbackIdx.size(); i++)
+					avgcostAfter[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
+							-log(scoresNorm[feedbackIdx[i]]) : log(scoresNorm[feedbackIdx[i]]);
+				avgcostAfter[feed] += feedbackIdx.size() * REG * l1norm;
+				avgcostAfter[feed] /= feedbackIdx.size();
 			}
 			else if(updateType == 12){// regular weight update with regularization
-				iff.updateWeights(scores, dt->data[maxInd], direction, 0, 1.0, REG);
+				double l1norm = iff.getL1NormofWeights();
+				costBefore[feed] = direction * scores[maxInd] + REG * l1norm;
+				avgcostBefore[feed] = 0;
+				for(int i = 0; i < (int)feedbackIdx.size(); i++)
+					avgcostBefore[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
+							scores[feedbackIdx[i]] : -scores[feedbackIdx[i]];
+				avgcostBefore[feed] += feedbackIdx.size() * REG * l1norm;
+				avgcostBefore[feed] /= feedbackIdx.size();
+
+				iff.updateWeights(scores, dt->data[maxInd], -direction, 0, 1.0, REG);
+
+				l1norm = iff.getL1NormofWeights();
+				costAfter[feed] = direction * scores[maxInd] + REG * l1norm;
+				avgcostAfter[feed] = 0;
+				for(int i = 0; i < (int)feedbackIdx.size(); i++)
+					avgcostAfter[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
+							scores[feedbackIdx[i]] : -scores[feedbackIdx[i]];
+				avgcostAfter[feed] += feedbackIdx.size() * REG * l1norm;
+				avgcostAfter[feed] /= feedbackIdx.size();
 			}
 		}
 		stats << "\n";
 		statsNoFeed << "\n";
 		std::cout << " Feedback -> " << numAnomFound << std::endl;
 		sum += numAnomFound;
+
+		costs << iter+1;
+		for(int feed = 0; feed < numFeedback; feed++)
+			costs << "," << costBefore[feed];
+		costs << "\n";
+		costs << iter+1;
+		for(int feed = 0; feed < numFeedback; feed++)
+			costs << "," << costAfter[feed];
+		costs << "\n";
+		costs << iter+1;
+		for(int feed = 0; feed < numFeedback; feed++)
+			costs << "," << avgcostBefore[feed];
+		costs << "\n";
+		costs << iter+1;
+		for(int feed = 0; feed < numFeedback; feed++)
+			costs << "," << avgcostAfter[feed];
+		costs << "\n";
 	}
 	std::cout << "Avg: Baseline -> " << sumBase/numIter << " Feedback -> " << sum/numIter<< std::endl;
 //	tree.close();
 	stats.close();
 	statsNoFeed.close();
+	costs.close();
 	std::cout << "Time elapsed: " << std::time(nullptr) - st << " seconds\n";
 
 	return 0;

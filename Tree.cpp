@@ -278,6 +278,14 @@ int Tree::getHighestDepth(double *inst){
 	return cur->depth;
 }
 
+double Tree::getL1NormofWeights(){
+	if(this->leftChild == NULL || this->rightChild == NULL){
+		return fabs(this->weight);
+	}
+	return  this->leftChild->getL1NormofWeights() +
+			this->rightChild->getL1NormofWeights();
+}
+
 /*
  * takes an instance as vector of double
  */

@@ -20,6 +20,7 @@ public:
 
 	Forest() {
 		rsample = false;
+		maxheight = 0;
 		ntree = 0;
 		nsample = 256;
 	}
@@ -51,6 +52,7 @@ public:
 	std::vector<double> AnomalyScore(const doubleframe* df, bool **marginalize);
 	std::vector<double> AnomalyScore(doubleframe* df);
 	double getL2Norm2(double *inst);
+	double getL1NormofWeights();
 	virtual std::vector<double> pathLength(double *inst);
 	std::vector<std::vector<double> > pathLength(doubleframe* data);
 	std::vector<double> ADtest(

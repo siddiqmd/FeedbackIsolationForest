@@ -71,6 +71,7 @@ public:
 
 	std::vector<double> getPatternScores(double *inst, int depLim = 10);
 	int getHighestDepth(double *inst);
+	double getL1NormofWeights();
 	double getScoreAtDepth(double *inst, int depLim);
 	double getPatternScoreAtDepth(double *inst, int depLim);
 	double getScoreFromWeights(double *inst);
