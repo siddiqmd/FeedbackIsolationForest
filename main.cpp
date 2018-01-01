@@ -455,6 +455,7 @@ void normalizeScore(std::vector<double> &scores, std::vector<double> &scoresNorm
 	for(int i = 1; i < (int)scores.size(); i++){
 		if(scores[i] > MX) MX = scores[i];
 	}
+	MX += 1;//add 1 avoid having a 0
 	for(int i = 0; i < (int)scores.size(); i++){
 		scoresNorm[i] = MX - scores[i];
 		Z += scoresNorm[i];
@@ -463,9 +464,40 @@ void normalizeScore(std::vector<double> &scores, std::vector<double> &scoresNorm
 		scoresNorm[i] = scoresNorm[i] / Z;
 }
 
+double getLinearLoss(int x, int y, std::vector<double> &scores, double REG, double l1norm){
+	double loss = y * scores[x] + REG * l1norm;
+	return loss;
+}
+double getLinearLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scores, double REG, double l1norm){
+	double loss = 0;
+	for(int i = 0; i < (int)x.size(); i++){
+		int y = (strcmp(metadata->data[x[i]][0], "anomaly") == 0) ? 1 : -1;
+		loss += getLinearLoss(x[i], y, scores, REG, l1norm);
+	}
+	loss /= x.size();
+	return loss;
+}
+
+
+double getLoglikelihoodLoss(int x, int y, std::vector<double> &scoresNorm, double REG, double l1norm){
+	double loss = (-y) * log(scoresNorm[x]) + REG * l1norm;
+	return loss;
+}
+
+double getLoglikelihoodLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scoresNorm, double REG, double l1norm){
+	double loss = 0;
+	for(int i = 0; i < (int)x.size(); i++){
+		int y = (strcmp(metadata->data[x[i]][0], "anomaly") == 0) ? 1 : -1;
+		loss += getLoglikelihoodLoss(x[i], y, scoresNorm, REG, l1norm);
+	}
+	loss /= x.size();
+	return loss;
+}
+
 int main(int argc, char* argv[]) {
 	std::time_t st = std::time(nullptr);
 	srand(0); //randomize for random number generator.
+
 	// parse argument from command line
 	parsed_args* pargs = parse_args(argc, argv);
 	ntstring input_name = pargs->input_name;
@@ -477,67 +509,51 @@ int main(int argc, char* argv[]) {
 	bool header = pargs->header;
 //	bool verbose = pargs->verbose;
 	bool rsample = nsample != 0;
-	int numFeedback = pargs->columns;//-c for train sample size option using for number of feedback
-	if(numFeedback == 0)
-		numFeedback = 100;
-	int updateType = pargs->window_size;//-w for window_size option using as type of update
-	if(updateType == 512)
-		updateType = 0;
 
-	char type[100];
+	// Feedback Parameters
+	int numIter = pargs->numIteration;
+	int numFeedback = pargs->numFeedback;
+	int numGradUpd = pargs->numGradUpd;
+	int lossType = pargs->lossType;
+	int updateType = pargs->updateType;
+	double REG = pargs->REG_PARAM;
+
+	char typeLoss[100], typeUpdate[100];
+	if(lossType == 0)
+		strcpy(typeLoss, "linear");
+	else if(lossType == 1)
+		strcpy(typeLoss, "loglikelihood");
 
 	if(updateType == 0)
-		strcpy(type, "reg");
+		strcpy(typeUpdate, "online");
 	else if(updateType == 1)
-		strcpy(type, "updMstk.reg");
-	else if(updateType == 2)
-		strcpy(type, "exp");
-	else if(updateType == 3)
-		strcpy(type, "updMstk.exp");
-	else if(updateType == 4)
-		strcpy(type, "runAvg");
-	else if(updateType == 5)
-		strcpy(type, "updMstk.runAvg");
-	else if(updateType == 6)
-		strcpy(type, "PA.runAvg");
-	else if(updateType == 7)
-		strcpy(type, "updMstk.PA.runAvg");
-	else if(updateType == 8)
-		strcpy(type, "PA.reg");
-	else if(updateType == 9)
-		strcpy(type, "updMstk.PA.reg");
-	else if(updateType == 10)
-		strcpy(type, "llh");
-	else if(updateType == 11)
-		strcpy(type, "llhWithReg");
-	else if(updateType == 12)
-		strcpy(type, "regWithReg");
+		strcpy(typeUpdate, "stochastic");
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
 	doubleframe* dt = conv_frame(double, ntstring, csv); //read data to the global variable
 	nsample = nsample == 0 ? dt->nrow : nsample;
 
-	// Parameters
-	int numIter = 1;
-	double REG = 0.01;
-
-	std::cout << "# Iterations     = " << numIter << std::endl;
 	std::cout << "# Trees          = " << ntree << std::endl;
 	std::cout << "# Samples        = " << nsample << std::endl;
 	std::cout << "MaxHeight        = " << maxheight << std::endl;
 	std::cout << "Orig Dimension   = " << dt->nrow << "," << dt->ncol << std::endl;
+	std::cout << "# Iterations     = " << numIter << std::endl;
 	std::cout << "# Feedbacks      = " << numFeedback << std::endl;
-	std::cout << "Update type      = " << type << std::endl;
+	std::cout << "Loss   type      = " << typeLoss << std::endl;
+	std::cout << "Update type      = " << typeUpdate << std::endl;
+	std::cout << "Num Grad Upd     = " << numGradUpd << std::endl;
 	std::cout << "Reg. Constant    = " << REG << std::endl;
 
 //	char treeFile[1000];
-	char fname[1000];
+//	char fname[1000];
 	char statFile[1000], statNoFeed[1000];
-	double costBefore[100], costAfter[100], avgcostBefore[100], avgcostAfter[100];
+	double costBefore[100], costAfter[100], avgcostBefore[100], avgcostAfter[100];//need dynamic memory allocation
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
-	sprintf(statFile, "%s_summary_feed%d_type_%s.csv", output_name, numFeedback, type);
-	sprintf(statNoFeed, "%s_summary_feed%d_type_%s.csv", output_name, 0, type);
+	sprintf(statFile,   "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g.csv",
+			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG);
+	sprintf(statNoFeed, "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g.csv",
+			output_name,           0, typeLoss, typeUpdate, numGradUpd, REG);
 //	ofstream tree(treeFile);
 	ofstream stats(statFile), statsNoFeed(statNoFeed);
 	stats << "iter";
@@ -550,7 +566,8 @@ int main(int argc, char* argv[]) {
 	statsNoFeed << "\n";
 
 	char costFile[1000];
-	sprintf(costFile, "%s_cost_type_%s.csv", output_name, type);
+	sprintf(costFile, "%s_cost_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g.csv",
+			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG);
 	ofstream costs(costFile);
 	costs << "iter";
 	for(int i = 0; i < numFeedback; i++){
@@ -581,10 +598,10 @@ int main(int argc, char* argv[]) {
 //			if(feed == 0 || feed == (numFeedback-1)){
 //				iff.printStat(tree);
 //			}
-			if(feed == 0 || feed == (numFeedback-1)){
-				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
-				printScoreToFile(scores, csv, metadata, dt, fname);
-			}
+//			if(feed == 0 || feed == (numFeedback-1)){
+//				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
+//				printScoreToFile(scores, csv, metadata, dt, fname);
+//			}
 
 			double min = DBL_MAX;
 			int maxInd = -1;
@@ -594,141 +611,40 @@ int main(int argc, char* argv[]) {
 					maxInd = i;
 				}
 			}
-//			std::cout << "maxIdx: " << maxInd << std::endl;
 			gotFeedback[maxInd] = true;
 			feedbackIdx.push_back(maxInd);
-			int direction = -1;
+			int y = -1;
 			if(strcmp(metadata->data[maxInd][0], "anomaly") == 0){
-				direction = 1;
+				y = 1;
 				numAnomFound++;
 			}
 			stats << "," << numAnomFound;
-
-			if(updateType == 0){// regular weight update for both mistake and correct
-				costBefore[feed] = direction * scores[maxInd];
-				avgcostBefore[feed] = 0;
-				for(int i = 0; i < (int)feedbackIdx.size(); i++)
-					avgcostBefore[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
-							scores[feedbackIdx[i]] : -scores[feedbackIdx[i]];
-				avgcostBefore[feed] /= feedbackIdx.size();
-
-				iff.updateWeights(scores, dt->data[maxInd], -direction, 0);
-
-				costAfter[feed] = direction * scores[maxInd];
-				avgcostAfter[feed] = 0;
-				for(int i = 0; i < (int)feedbackIdx.size(); i++)
-					avgcostAfter[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
-							scores[feedbackIdx[i]] : -scores[feedbackIdx[i]];
-				avgcostAfter[feed] /= feedbackIdx.size();
-			}
-			else if(updateType == 1){
-				if(direction < 0)//regular weight update only for false positives
-					iff.updateWeights(scores, dt->data[maxInd], direction, 0);
-			}
-			else if(updateType == 2){// exponential weight update both for mistake and correct
-				iff.updateWeights(scores, dt->data[maxInd], direction, 1);
-			}
-			else if(updateType == 3){
-				if(direction < 0)//exponential weight update only for false positives
-					iff.updateWeights(scores, dt->data[maxInd], direction, 1);
-			}
-			else if(updateType == 4){//running average weight update for both mistake and correct
-				iff.updateWeightsRunAvg(scores, dt->data[maxInd], direction);
-			}
-			else if(updateType == 5){
-				if(direction < 0)//running average weight update only for false positives
-					iff.updateWeightsRunAvg(scores, dt->data[maxInd], direction);
-			}
-			else if(updateType == 6){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
-				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
-				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
-				double loss = threshold - direction * scores[maxInd];
-				if(loss > 0)
-					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, false);
-			}
-			else if(updateType == 7){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
-				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
-				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
-				double loss = threshold - direction * scores[maxInd];
-				if(loss > 0 && direction < 0)//update only on false positives
-					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, false);
-			}
-			else if(updateType == 8){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
-				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
-				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
-				double loss = threshold - direction * scores[maxInd];
-				if(loss > 0)
-					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
-			}
-			else if(updateType == 9){//Passive Aggressive update with loss: max(0, \tau - y (w.x))
-				double L2Norm2 = iff.getL2Norm2(dt->data[maxInd]);
-				double threshold = fabs( getQthPercentileScore(scores, 0.03) );
-				double loss = threshold - direction * scores[maxInd];
-				if(loss > 0 && direction < 0)//update only on false positives
-					iff.updateWeightsPassAggr(scores, dt->data[maxInd], direction, loss / L2Norm2, true);
-			}
-			else if(updateType == 10){// Update from gradient of-log likelihood loss
-				costBefore[feed] = (-direction) * log(scoresNorm[maxInd]);
-				avgcostBefore[feed] = 0;
-				for(int i = 0; i < (int)feedbackIdx.size(); i++)
-					avgcostBefore[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
-							-log(scoresNorm[feedbackIdx[i]]) : log(scoresNorm[feedbackIdx[i]]);
-				avgcostBefore[feed] /= feedbackIdx.size();
-
-				iff.updateWeights(scores, dt->data[maxInd], -direction, 1.0);
-				normalizeScore(scores, scoresNorm);
-				iff.computeMass(scoresNorm);
-
-				costAfter[feed] = (-direction) * log(scoresNorm[maxInd]);
-				avgcostAfter[feed] = 0;
-				for(int i = 0; i < (int)feedbackIdx.size(); i++)
-					avgcostAfter[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
-							-log(scoresNorm[feedbackIdx[i]]) : log(scoresNorm[feedbackIdx[i]]);
-				avgcostAfter[feed] /= feedbackIdx.size();
-			}
-			else if(updateType == 11){// Update from gradient of-log likelihood loss with regularization
+			if(lossType == 0){//linear loss
 				double l1norm = iff.getL1NormofWeights();
-				costBefore[feed] = (-direction) * log(scoresNorm[maxInd]) + REG * l1norm;
-				avgcostBefore[feed] = 0;
-				for(int i = 0; i < (int)feedbackIdx.size(); i++)
-					avgcostBefore[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
-							-log(scoresNorm[feedbackIdx[i]]) : log(scoresNorm[feedbackIdx[i]]);
-				avgcostBefore[feed] += feedbackIdx.size() * REG * l1norm;
-				avgcostBefore[feed] /= feedbackIdx.size();
+				costBefore[feed] = getLinearLoss(maxInd, y, scores, REG, l1norm);
+				avgcostBefore[feed] = getLinearLoss(feedbackIdx, metadata, scores, REG, l1norm);
 
-				iff.updateWeights(scores, dt->data[maxInd], -direction, 1.0, REG);
-				normalizeScore(scores, scoresNorm);
-				iff.computeMass(scoresNorm);
+				for(int i = 0; i < numGradUpd; i++)
+					iff.updateWeights(scores, dt->data[maxInd], -y, 0, 1.0, REG);
 
 				l1norm = iff.getL1NormofWeights();
-				costAfter[feed] = (-direction) * log(scoresNorm[maxInd]) + REG * l1norm;
-				avgcostAfter[feed] = 0;
-				for(int i = 0; i < (int)feedbackIdx.size(); i++)
-					avgcostAfter[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
-							-log(scoresNorm[feedbackIdx[i]]) : log(scoresNorm[feedbackIdx[i]]);
-				avgcostAfter[feed] += feedbackIdx.size() * REG * l1norm;
-				avgcostAfter[feed] /= feedbackIdx.size();
+				costAfter[feed] = getLinearLoss(maxInd, y, scores, REG, l1norm);
+				avgcostAfter[feed] = getLinearLoss(feedbackIdx, metadata, scores, REG, l1norm);
 			}
-			else if(updateType == 12){// regular weight update with regularization
+			else if(lossType == 1){//log likelihood loss
 				double l1norm = iff.getL1NormofWeights();
-				costBefore[feed] = direction * scores[maxInd] + REG * l1norm;
-				avgcostBefore[feed] = 0;
-				for(int i = 0; i < (int)feedbackIdx.size(); i++)
-					avgcostBefore[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
-							scores[feedbackIdx[i]] : -scores[feedbackIdx[i]];
-				avgcostBefore[feed] += feedbackIdx.size() * REG * l1norm;
-				avgcostBefore[feed] /= feedbackIdx.size();
+				costBefore[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm, REG, l1norm);
+				avgcostBefore[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm, REG, l1norm);
 
-				iff.updateWeights(scores, dt->data[maxInd], -direction, 0, 1.0, REG);
+				for(int i = 0; i < numGradUpd; i++){
+					iff.updateWeights(scores, dt->data[maxInd], -y, 1.0, REG);
+					normalizeScore(scores, scoresNorm);
+					iff.computeMass(scoresNorm);
+				}
 
 				l1norm = iff.getL1NormofWeights();
-				costAfter[feed] = direction * scores[maxInd] + REG * l1norm;
-				avgcostAfter[feed] = 0;
-				for(int i = 0; i < (int)feedbackIdx.size(); i++)
-					avgcostAfter[feed] += strcmp(metadata->data[feedbackIdx[i]][0], "anomaly") == 0 ?
-							scores[feedbackIdx[i]] : -scores[feedbackIdx[i]];
-				avgcostAfter[feed] += feedbackIdx.size() * REG * l1norm;
-				avgcostAfter[feed] /= feedbackIdx.size();
+				costAfter[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm, REG, l1norm);
+				avgcostAfter[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm, REG, l1norm);
 			}
 		}
 		stats << "\n";

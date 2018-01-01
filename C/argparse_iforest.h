@@ -14,6 +14,12 @@ struct parsed_args {
     bool verbose;
     int window_size;
     int columns;
+    int numFeedback;
+    int lossType;
+    int updateType;
+    double REG_PARAM;
+    int numIteration;
+    int numGradUpd;
 };
 
 
