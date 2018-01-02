@@ -494,6 +494,15 @@ double getLoglikelihoodLoss(std::vector<int> x, const ntstringframe* metadata, s
 	return loss;
 }
 
+void shuffle(std::vector<int> &feedbackIdx){
+	for(int j = 0; j < (int)feedbackIdx.size(); j++){
+		int rnd = rand() % feedbackIdx.size();
+		int tmp = feedbackIdx[j];
+		feedbackIdx[j] = feedbackIdx[rnd];
+		feedbackIdx[rnd] = tmp;
+	}
+}
+
 int main(int argc, char* argv[]) {
 	std::time_t st = std::time(nullptr);
 	srand(0); //randomize for random number generator.
@@ -528,6 +537,8 @@ int main(int argc, char* argv[]) {
 		strcpy(typeUpdate, "online");
 	else if(updateType == 1)
 		strcpy(typeUpdate, "stochastic");
+	else if(updateType == 2)
+		strcpy(typeUpdate, "batch");
 
 	ntstringframe* csv = read_csv(input_name, header, false, false);
 	ntstringframe* metadata = split_frame(ntstring, csv, metacol, true);
@@ -624,8 +635,26 @@ int main(int argc, char* argv[]) {
 				costBefore[feed] = getLinearLoss(maxInd, y, scores, REG, l1norm);
 				avgcostBefore[feed] = getLinearLoss(feedbackIdx, metadata, scores, REG, l1norm);
 
-				for(int i = 0; i < numGradUpd; i++)
-					iff.updateWeights(scores, dt->data[maxInd], -y, 0, 1.0, REG);
+				if(updateType == 0){// online update
+					for(int i = 0; i < numGradUpd; i++)
+						iff.updateWeights(scores, dt->data[maxInd], -y, 0, 1.0, REG);
+				}
+				else if(updateType == 1){// stochastic update
+					for(int i = 0; i < numGradUpd; i++){
+						shuffle(feedbackIdx);
+						for(int j = 0; j < (int)feedbackIdx.size(); j++){
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, 1.0, REG);
+						}
+					}
+				}
+				else if(updateType == 2){// batch update
+					for(int i = 0; i < numGradUpd; i++){
+						for(int j = 0; j < (int)feedbackIdx.size()-1; j++){
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, 1.0, 0);
+						}
+						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 0, 1.0, REG);
+					}
+				}
 
 				l1norm = iff.getL1NormofWeights();
 				costAfter[feed] = getLinearLoss(maxInd, y, scores, REG, l1norm);
@@ -636,10 +665,33 @@ int main(int argc, char* argv[]) {
 				costBefore[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm, REG, l1norm);
 				avgcostBefore[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm, REG, l1norm);
 
-				for(int i = 0; i < numGradUpd; i++){
-					iff.updateWeights(scores, dt->data[maxInd], -y, 1.0, REG);
-					normalizeScore(scores, scoresNorm);
-					iff.computeMass(scoresNorm);
+				if(updateType == 0){// online update
+					for(int i = 0; i < numGradUpd; i++){
+						iff.updateWeights(scores, dt->data[maxInd], -y, 1.0, REG);
+						normalizeScore(scores, scoresNorm);
+						iff.computeMass(scoresNorm);
+					}
+				}
+				else if(updateType == 1){// stochastic update
+					for(int i = 0; i < numGradUpd; i++){
+						shuffle(feedbackIdx);
+						for(int j = 0; j < (int)feedbackIdx.size(); j++){
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 1.0, REG);
+							normalizeScore(scores, scoresNorm);
+							iff.computeMass(scoresNorm);
+						}
+					}
+
+				}
+				else if(updateType == 2){// batch update
+					for(int i = 0; i < numGradUpd; i++){
+						for(int j = 0; j < (int)feedbackIdx.size()-1; j++){
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 1.0, 0);
+						}
+						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 1.0, REG);
+						normalizeScore(scores, scoresNorm);
+						iff.computeMass(scoresNorm);
+					}
 				}
 
 				l1norm = iff.getL1NormofWeights();
