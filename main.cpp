@@ -494,9 +494,17 @@ double getLoglikelihoodLoss(std::vector<int> x, const ntstringframe* metadata, s
 	return loss;
 }
 
+std::vector<int> rndVec[100];// need to allocate memory if feedback greater than 100
+void initRndVec(){
+	for(int s = 1; s <= 100; s++){
+		for(int i = 0; i < s; i++){
+			rndVec[s-1].push_back(rand() % s);
+		}
+	}
+}
 void shuffle(std::vector<int> &feedbackIdx){
 	for(int j = 0; j < (int)feedbackIdx.size(); j++){
-		int rnd = rand() % feedbackIdx.size();
+		int rnd = rndVec[feedbackIdx.size()-1][j];
 		int tmp = feedbackIdx[j];
 		feedbackIdx[j] = feedbackIdx[rnd];
 		feedbackIdx[rnd] = tmp;
@@ -506,7 +514,7 @@ void shuffle(std::vector<int> &feedbackIdx){
 int main(int argc, char* argv[]) {
 	std::time_t st = std::time(nullptr);
 	srand(0); //randomize for random number generator.
-
+	initRndVec();
 	// parse argument from command line
 	parsed_args* pargs = parse_args(argc, argv);
 	ntstring input_name = pargs->input_name;
@@ -681,7 +689,6 @@ int main(int argc, char* argv[]) {
 							iff.computeMass(scoresNorm);
 						}
 					}
-
 				}
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < numGradUpd; i++){
