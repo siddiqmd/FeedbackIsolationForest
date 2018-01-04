@@ -463,31 +463,31 @@ void normalizeScore(std::vector<double> &scores, std::vector<double> &scoresNorm
 		scoresNorm[i] = scoresNorm[i] / Z;
 }
 
-double getLinearLoss(int x, int y, std::vector<double> &scores, double REG, double l1norm){
-	double loss = y * scores[x] + REG * l1norm;
+double getLinearLoss(int x, int y, std::vector<double> &scores){
+	double loss = y * scores[x];
 	return loss;
 }
-double getLinearLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scores, double REG, double l1norm){
+double getLinearLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scores){
 	double loss = 0;
 	for(int i = 0; i < (int)x.size(); i++){
 		int y = (strcmp(metadata->data[x[i]][0], "anomaly") == 0) ? 1 : -1;
-		loss += getLinearLoss(x[i], y, scores, REG, l1norm);
+		loss += getLinearLoss(x[i], y, scores);
 	}
 	loss /= x.size();
 	return loss;
 }
 
 
-double getLoglikelihoodLoss(int x, int y, std::vector<double> &scoresNorm, double REG, double l1norm){
-	double loss = (-y) * log(scoresNorm[x]) + REG * l1norm;
+double getLoglikelihoodLoss(int x, int y, std::vector<double> &scoresNorm){
+	double loss = (-y) * log(scoresNorm[x]+1e-15);
 	return loss;
 }
 
-double getLoglikelihoodLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scoresNorm, double REG, double l1norm){
+double getLoglikelihoodLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scoresNorm){
 	double loss = 0;
 	for(int i = 0; i < (int)x.size(); i++){
 		int y = (strcmp(metadata->data[x[i]][0], "anomaly") == 0) ? 1 : -1;
-		loss += getLoglikelihoodLoss(x[i], y, scoresNorm, REG, l1norm);
+		loss += getLoglikelihoodLoss(x[i], y, scoresNorm);
 	}
 	loss /= x.size();
 	return loss;
@@ -638,9 +638,8 @@ int main(int argc, char* argv[]) {
 			}
 			stats << "," << numAnomFound;
 			if(lossType == 0){//linear loss
-				double l1norm = iff.getL1NormofWeights();
-				costBefore[feed] = getLinearLoss(maxInd, y, scores, 0, l1norm);
-				avgcostBefore[feed] = getLinearLoss(feedbackIdx, metadata, scores, 0, l1norm);
+				costBefore[feed] = getLinearLoss(maxInd, y, scores);
+				avgcostBefore[feed] = getLinearLoss(feedbackIdx, metadata, scores);
 
 				if(updateType == 0){// online update
 					for(int i = 0; i < numGradUpd; i++)
@@ -657,20 +656,18 @@ int main(int argc, char* argv[]) {
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < numGradUpd; i++){
 						for(int j = 0; j < (int)feedbackIdx.size()-1; j++){
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, 1.0, 0);
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, 1.0/feedbackIdx.size(), 0);
 						}
-						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 0, 1.0, REG);
+						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 0, 1.0/feedbackIdx.size(), REG);
 					}
 				}
 
-				l1norm = iff.getL1NormofWeights();
-				costAfter[feed] = getLinearLoss(maxInd, y, scores, 0, l1norm);
-				avgcostAfter[feed] = getLinearLoss(feedbackIdx, metadata, scores, 0, l1norm);
+				costAfter[feed] = getLinearLoss(maxInd, y, scores);
+				avgcostAfter[feed] = getLinearLoss(feedbackIdx, metadata, scores);
 			}
 			else if(lossType == 1){//log likelihood loss
-				double l1norm = iff.getL1NormofWeights();
-				costBefore[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm, 0, l1norm);
-				avgcostBefore[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm, 0, l1norm);
+				costBefore[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm);
+				avgcostBefore[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm);
 
 				if(updateType == 0){// online update
 					for(int i = 0; i < numGradUpd; i++){
@@ -692,17 +689,16 @@ int main(int argc, char* argv[]) {
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < numGradUpd; i++){
 						for(int j = 0; j < (int)feedbackIdx.size()-1; j++){
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 1.0, 0);
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 1.0/feedbackIdx.size(), 0);
 						}
-						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 1.0, REG);
+						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 1.0/feedbackIdx.size(), REG);
 						normalizeScore(scores, scoresNorm);
 						iff.computeMass(scoresNorm);
 					}
 				}
 
-				l1norm = iff.getL1NormofWeights();
-				costAfter[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm, 0, l1norm);
-				avgcostAfter[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm, 0, l1norm);
+				costAfter[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm);
+				avgcostAfter[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm);
 			}
 		}
 		stats << "\n";
