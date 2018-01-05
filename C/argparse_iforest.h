@@ -20,6 +20,7 @@ struct parsed_args {
     double REG_PARAM;
     int numIteration;
     int numGradUpd;
+    double learningRate;
 };
 
 

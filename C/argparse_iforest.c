@@ -1,6 +1,6 @@
 #include "argparse_iforest.h"
 
-#define NOPTS 16
+#define NOPTS 17
 #define IOPT 0
 #define OOPT 1
 #define MOPT 2
@@ -17,6 +17,7 @@
 #define XOPT 13
 #define LOPT 14
 #define GOPT 15
+#define LROPT 16
 
 d(option)* option_spec() {
     d(option)* opts = vecalloc(option,NOPTS);
@@ -180,6 +181,16 @@ d(option)* option_spec() {
         .isflag = false,
         .flagged = false
     };
+    opts[LROPT] = (option){
+        .sarg = 'lr',
+        .larg = "learningrate",
+        .name = "LR",
+        .desc = "specify learning rate for gradient update.",
+        .default_value = "1",
+        .value = NULL,
+        .isflag = false,
+        .flagged = false
+    };
 
     return opts;
 }
@@ -221,6 +232,9 @@ parsed_args* validate_args(d(option*) opts) {
     if (pargs->numFeedback<0) {
 		err_and_exit(1,"Number of feedback can't be negative.\n");
 	}
+    if (pargs->learningRate<0) {
+		err_and_exit(1,"Learning rate can't be negative.\n");
+	}
 
     pargs->sampsize = strtol(opts[SOPT].value,NULL,10);
     pargs->maxdepth = strtol(opts[DOPT].value,NULL,10);
@@ -234,5 +248,6 @@ parsed_args* validate_args(d(option*) opts) {
     pargs->numIteration = strtol(opts[XOPT].value,NULL,10);
     pargs->lossType = strtol(opts[LOPT].value,NULL,10);
     pargs->numGradUpd = strtol(opts[GOPT].value,NULL,10);
+    pargs->learningRate = strtod(opts[LROPT].value,NULL);
     return pargs;
 }

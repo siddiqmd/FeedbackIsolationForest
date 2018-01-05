@@ -551,6 +551,7 @@ int main(int argc, char* argv[]) {
 	int lossType = pargs->lossType;
 	int updateType = pargs->updateType;
 	double REG = pargs->REG_PARAM;
+	double LRATE = pargs->learningRate;
 
 	char typeLoss[100], typeUpdate[100];
 	if(lossType == 0)
@@ -582,6 +583,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Update type      = " << typeUpdate << std::endl;
 	std::cout << "Num Grad Upd     = " << numGradUpd << std::endl;
 	std::cout << "Reg. Constant    = " << REG << std::endl;
+	std::cout << "Learning Rate    = " << LRATE << std::endl;
 
 //	char treeFile[1000];
 //	char fname[1000];
@@ -642,56 +644,56 @@ int main(int argc, char* argv[]) {
 //			}
 
 			double min = DBL_MAX;
-			int maxInd = -1;
+			int minInd = -1;
 			for(int i = 0; i < (int)scores.size(); i++){
 				if(gotFeedback[i] == false && min > scores[i]){
 					min = scores[i];
-					maxInd = i;
+					minInd = i;
 				}
 			}
-			gotFeedback[maxInd] = true;
-			feedbackIdx.push_back(maxInd);
+			gotFeedback[minInd] = true;
+			feedbackIdx.push_back(minInd);
 			int y = -1;
-			if(strcmp(metadata->data[maxInd][0], "anomaly") == 0){
+			if(strcmp(metadata->data[minInd][0], "anomaly") == 0){
 				y = 1;
 				numAnomFound++;
 			}
 			stats << "," << numAnomFound;
 			if(lossType == 0){//linear loss
-				costBefore[feed] = getLinearLoss(maxInd, y, scores);
+				costBefore[feed] = getLinearLoss(minInd, y, scores);
 				avgcostBefore[feed] = getLinearLoss(feedbackIdx, metadata, scores);
 
 				if(updateType == 0){// online update
 					for(int i = 0; i < numGradUpd; i++)
-						iff.updateWeights(scores, dt->data[maxInd], -y, 0, 1.0, REG);
+						iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE, REG);
 				}
 				else if(updateType == 1){// stochastic update
 					for(int i = 0; i < numGradUpd; i++){
 						shuffle(feedbackIdx);
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, 1.0, REG);
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE/feedbackIdx.size(), REG);
 						}
 					}
 				}
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < numGradUpd; i++){
-						for(int j = 0; j < (int)feedbackIdx.size()-1; j++){
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, 1.0/feedbackIdx.size(), 0);
+						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE/feedbackIdx.size(), REG);
+						for(int j = 1; j < (int)feedbackIdx.size(); j++){
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE/feedbackIdx.size(), 0);
 						}
-						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 0, 1.0/feedbackIdx.size(), REG);
 					}
 				}
 
-				costAfter[feed] = getLinearLoss(maxInd, y, scores);
+				costAfter[feed] = getLinearLoss(minInd, y, scores);
 				avgcostAfter[feed] = getLinearLoss(feedbackIdx, metadata, scores);
 			}
 			else if(lossType == 1){//log likelihood loss
-				costBefore[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm);
+				costBefore[feed] = getLoglikelihoodLoss(minInd, y, scoresNorm);
 				avgcostBefore[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm);
 
 				if(updateType == 0){// online update
 					for(int i = 0; i < numGradUpd; i++){
-						iff.updateWeights(scores, dt->data[maxInd], -y, 1.0, REG);
+						iff.updateWeights(scores, dt->data[minInd], -y, LRATE, REG);
 						normalizeScore(scores, scoresNorm);
 						iff.computeMass(scoresNorm);
 					}
@@ -700,7 +702,7 @@ int main(int argc, char* argv[]) {
 					for(int i = 0; i < numGradUpd; i++){
 						shuffle(feedbackIdx);
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 1.0, REG);
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE, REG);
 							normalizeScore(scores, scoresNorm);
 							iff.computeMass(scoresNorm);
 						}
@@ -708,27 +710,27 @@ int main(int argc, char* argv[]) {
 				}
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < numGradUpd; i++){
-						for(int j = 0; j < (int)feedbackIdx.size()-1; j++){
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 1.0/feedbackIdx.size(), 0);
+						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, LRATE/feedbackIdx.size(), REG);
+						for(int j = 1; j < (int)feedbackIdx.size(); j++){
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE/feedbackIdx.size(), 0);
 						}
-						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 1.0/feedbackIdx.size(), REG);
 						normalizeScore(scores, scoresNorm);
 						iff.computeMass(scoresNorm);
 					}
 				}
 
-				costAfter[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm);
+				costAfter[feed] = getLoglikelihoodLoss(minInd, y, scoresNorm);
 				avgcostAfter[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm);
 			}
 			else if(lossType == 2){//logistic loss
-				costBefore[feed] = getLogisticLoss(maxInd, y, scores);
+				costBefore[feed] = getLogisticLoss(minInd, y, scores);
 				avgcostBefore[feed] = getLogisticLoss(feedbackIdx, metadata, scores);
 
 				if(updateType == 0){// online update
 					for(int i = 0; i < numGradUpd; i++){
-						double change = 1 / (1 + exp(-y * scores[maxInd]));
+						double change = 1 / (1 + exp(-y * scores[minInd]));
 						if(change > 1e-6){
-							iff.updateWeights(scores, dt->data[maxInd], -y, 0, change, REG);
+							iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE*change, REG);
 						}
 					}
 				}
@@ -738,25 +740,27 @@ int main(int argc, char* argv[]) {
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
 							double change = 1 / (1 + exp(-y * scores[feedbackIdx[j]]));
 							if(change > 1e-6){
-								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, change, REG);
+								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE*change, REG);
 							}
 						}
 					}
 				}
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < numGradUpd; i++){
-						for(int j = 0; j < (int)feedbackIdx.size()-1; j++){
+						double change = 1 / (1 + exp(-y * scores[feedbackIdx[0]]));
+						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0,
+								LRATE*change/feedbackIdx.size(), REG);
+						for(int j = 1; j < (int)feedbackIdx.size(); j++){
 							double change = 1 / (1 + exp(-y * scores[feedbackIdx[j]]));
 							if(change > 1e-6){
-								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, change/feedbackIdx.size(), 0);
+								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0,
+										LRATE*change/feedbackIdx.size(), 0);
 							}
 						}
-						double change = 1 / (1 + exp(-y * scores[feedbackIdx[feedbackIdx.size()-1]]));
-						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 0, change/feedbackIdx.size(), REG);
 					}
 				}
 
-				costAfter[feed] = getLogisticLoss(maxInd, y, scores);
+				costAfter[feed] = getLogisticLoss(minInd, y, scores);
 				avgcostAfter[feed] = getLogisticLoss(feedbackIdx, metadata, scores);
 			}
 		}
