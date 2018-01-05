@@ -493,6 +493,24 @@ double getLoglikelihoodLoss(std::vector<int> x, const ntstringframe* metadata, s
 	return loss;
 }
 
+double getLogisticLoss(int x, int y, std::vector<double> &scores){
+	double loss = y * scores[x];
+	if(loss > 100)
+		return loss;
+	else
+		return log(1 + exp(loss));
+}
+
+double getLogisticLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scores){
+	double loss = 0;
+	for(int i = 0; i < (int)x.size(); i++){
+		int y = (strcmp(metadata->data[x[i]][0], "anomaly") == 0) ? 1 : -1;
+		loss += getLogisticLoss(x[i], y, scores);
+	}
+	loss /= x.size();
+	return loss;
+}
+
 std::vector<int> rndVec[100];// need to allocate memory if feedback greater than 100
 void initRndVec(){
 	for(int s = 1; s <= 100; s++){
@@ -539,6 +557,8 @@ int main(int argc, char* argv[]) {
 		strcpy(typeLoss, "linear");
 	else if(lossType == 1)
 		strcpy(typeLoss, "loglikelihood");
+	else if(lossType == 2)
+		strcpy(typeLoss, "logistic");
 
 	if(updateType == 0)
 		strcpy(typeUpdate, "online");
@@ -699,6 +719,45 @@ int main(int argc, char* argv[]) {
 
 				costAfter[feed] = getLoglikelihoodLoss(maxInd, y, scoresNorm);
 				avgcostAfter[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm);
+			}
+			else if(lossType == 2){//logistic loss
+				costBefore[feed] = getLogisticLoss(maxInd, y, scores);
+				avgcostBefore[feed] = getLogisticLoss(feedbackIdx, metadata, scores);
+
+				if(updateType == 0){// online update
+					for(int i = 0; i < numGradUpd; i++){
+						double change = 1 / (1 + exp(-y * scores[maxInd]));
+						if(change > 1e-6){
+							iff.updateWeights(scores, dt->data[maxInd], -y, 0, change, REG);
+						}
+					}
+				}
+				else if(updateType == 1){// stochastic update
+					for(int i = 0; i < numGradUpd; i++){
+						shuffle(feedbackIdx);
+						for(int j = 0; j < (int)feedbackIdx.size(); j++){
+							double change = 1 / (1 + exp(-y * scores[feedbackIdx[j]]));
+							if(change > 1e-6){
+								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, change, REG);
+							}
+						}
+					}
+				}
+				else if(updateType == 2){// batch update
+					for(int i = 0; i < numGradUpd; i++){
+						for(int j = 0; j < (int)feedbackIdx.size()-1; j++){
+							double change = 1 / (1 + exp(-y * scores[feedbackIdx[j]]));
+							if(change > 1e-6){
+								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, change/feedbackIdx.size(), 0);
+							}
+						}
+						double change = 1 / (1 + exp(-y * scores[feedbackIdx[feedbackIdx.size()-1]]));
+						iff.updateWeights(scores, dt->data[feedbackIdx[feedbackIdx.size()-1]], -y, 0, change/feedbackIdx.size(), REG);
+					}
+				}
+
+				costAfter[feed] = getLogisticLoss(maxInd, y, scores);
+				avgcostAfter[feed] = getLogisticLoss(feedbackIdx, metadata, scores);
 			}
 		}
 		stats << "\n";
