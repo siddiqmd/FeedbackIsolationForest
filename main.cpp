@@ -552,6 +552,11 @@ int main(int argc, char* argv[]) {
 	int updateType = pargs->updateType;
 	double REG = pargs->REG_PARAM;
 	double LRATE = pargs->learningRate;
+	bool variableLearningRate = false;
+	if(LRATE == 0)
+		variableLearningRate = true;
+	if(pargs->posWeight == 1)
+		Tree::POS_WEIGHT_ONLY = true;
 
 	char typeLoss[100], typeUpdate[100];
 	if(lossType == 0)
@@ -584,16 +589,18 @@ int main(int argc, char* argv[]) {
 	std::cout << "Num Grad Upd     = " << numGradUpd << std::endl;
 	std::cout << "Reg. Constant    = " << REG << std::endl;
 	std::cout << "Learning Rate    = " << LRATE << std::endl;
+	std::cout << "Variable LRate   = " << variableLearningRate << std::endl;
+	std::cout << "Positive W only  = " << Tree::POS_WEIGHT_ONLY << std::endl;
 
 //	char treeFile[1000];
 //	char fname[1000];
 	char statFile[1000], statNoFeed[1000];
 	double costBefore[100], costAfter[100], avgcostBefore[100], avgcostAfter[100];//need dynamic memory allocation
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
-	sprintf(statFile,   "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g.csv",
-			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG);
-	sprintf(statNoFeed, "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g.csv",
-			output_name,           0, typeLoss, typeUpdate, numGradUpd, REG);
+	sprintf(statFile,   "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d.csv",
+			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY);
+	sprintf(statNoFeed, "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d.csv",
+			output_name,           0, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY);
 //	ofstream tree(treeFile);
 	ofstream stats(statFile), statsNoFeed(statNoFeed);
 	stats << "iter";
@@ -606,8 +613,8 @@ int main(int argc, char* argv[]) {
 	statsNoFeed << "\n";
 
 	char costFile[1000];
-	sprintf(costFile, "%s_cost_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g.csv",
-			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG);
+	sprintf(costFile, "%s_cost_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d.csv",
+			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY);
 	ofstream costs(costFile);
 	costs << "iter";
 	for(int i = 0; i < numFeedback; i++){
@@ -630,6 +637,7 @@ int main(int argc, char* argv[]) {
 		std::vector<bool> gotFeedback(dt->nrow, false);
 		std::vector<int> feedbackIdx;
 		for(int feed = 0; feed < numFeedback; feed++){
+			if(variableLearningRate)	LRATE = 1/sqrt(feed + 1);
 			if(feed == 0){
 				int baseAnom = printNoFeedbackAnomCntToFile(scores, metadata, statsNoFeed, numFeedback);
 				std::cout << "Baseline -> " << baseAnom;

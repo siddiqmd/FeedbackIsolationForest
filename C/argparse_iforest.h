@@ -21,6 +21,7 @@ struct parsed_args {
     int numIteration;
     int numGradUpd;
     double learningRate;
+    int posWeight;
 };
 
 

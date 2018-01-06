@@ -34,6 +34,7 @@ class Tree {
 public:
 	static bool checkRange;
 	static bool useVolumeForScore;
+	static bool POS_WEIGHT_ONLY;
 
 	Tree() {
 		leftChild = NULL;

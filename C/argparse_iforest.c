@@ -1,6 +1,6 @@
 #include "argparse_iforest.h"
 
-#define NOPTS 17
+#define NOPTS 18
 #define IOPT 0
 #define OOPT 1
 #define MOPT 2
@@ -18,6 +18,7 @@
 #define LOPT 14
 #define GOPT 15
 #define LROPT 16
+#define POPT 17
 
 d(option)* option_spec() {
     d(option)* opts = vecalloc(option,NOPTS);
@@ -182,11 +183,21 @@ d(option)* option_spec() {
         .flagged = false
     };
     opts[LROPT] = (option){
-        .sarg = 'lr',
+        .sarg = 'a',
         .larg = "learningrate",
-        .name = "LR",
-        .desc = "specify learning rate for gradient update.",
+        .name = "A",
+        .desc = "specify learning rate for gradient update. Set 0 for variable learning rate 1/sq(t).",
         .default_value = "1",
+        .value = NULL,
+        .isflag = false,
+        .flagged = false
+    };
+    opts[POPT] = (option){
+        .sarg = 'p',
+        .larg = "posweight",
+        .name = "P",
+        .desc = "specify whether weights to be restricted to be positive only.",
+        .default_value = "0",
         .value = NULL,
         .isflag = false,
         .flagged = false
@@ -249,5 +260,6 @@ parsed_args* validate_args(d(option*) opts) {
     pargs->lossType = strtol(opts[LOPT].value,NULL,10);
     pargs->numGradUpd = strtol(opts[GOPT].value,NULL,10);
     pargs->learningRate = strtod(opts[LROPT].value,NULL);
+    pargs->posWeight = strtol(opts[POPT].value,NULL,10);
     return pargs;
 }

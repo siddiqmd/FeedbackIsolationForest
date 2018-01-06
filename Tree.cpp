@@ -9,6 +9,7 @@
 
 bool Tree::checkRange = false;
 bool Tree::useVolumeForScore = false;
+bool Tree::POS_WEIGHT_ONLY = false;
 std::vector<double> Tree::LB;
 std::vector<double> Tree::UB;
 double **Tree::Qnt;
@@ -177,6 +178,7 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 		else
 			cur->weight += direction * lrate * (1 - cur->mass) + reg * regPen;
 
+		if(Tree::POS_WEIGHT_ONLY == true && cur->weight < 0) cur->weight = 0;// prevent weight to be negative
 		delta = cur->weight - prevWeight;
 		for(int i = 0; i < (int)cur->instIdx.size(); i++)
 			scores[cur->instIdx[i]] += delta;
@@ -207,6 +209,7 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 		else
 			cur->weight += direction * change + reg * regPen;
 
+		if(Tree::POS_WEIGHT_ONLY == true && cur->weight < 0) cur->weight = 0;// prevent weight to be negative
 		delta = cur->weight - prevWeight;
 		for(int i = 0; i < (int)cur->instIdx.size(); i++)
 			scores[cur->instIdx[i]] += delta;
