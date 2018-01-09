@@ -600,10 +600,10 @@ int main(int argc, char* argv[]) {
 	char statFile[1000], statNoFeed[1000];
 	double costBefore[100], costAfter[100], avgcostBefore[100], avgcostAfter[100];//need dynamic memory allocation
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
-	sprintf(statFile,   "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d.csv",
-			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY);
-	sprintf(statNoFeed, "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d.csv",
-			output_name,           0, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY);
+	sprintf(statFile,   "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d_inwgt_%d.csv",
+			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY, reInitWeights);
+	sprintf(statNoFeed, "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d_inwgt_%d.csv",
+			output_name,           0, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY, reInitWeights);
 //	ofstream tree(treeFile);
 	ofstream stats(statFile), statsNoFeed(statNoFeed);
 	stats << "iter";
@@ -616,8 +616,8 @@ int main(int argc, char* argv[]) {
 	statsNoFeed << "\n";
 
 	char costFile[1000];
-	sprintf(costFile, "%s_cost_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d.csv",
-			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY);
+	sprintf(costFile, "%s_cost_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d_inwgt_%d.csv",
+			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY, reInitWeights);
 	ofstream costs(costFile);
 	costs << "iter";
 	for(int i = 0; i < numFeedback; i++){
