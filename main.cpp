@@ -463,22 +463,23 @@ void normalizeScore(std::vector<double> &scores, std::vector<double> &scoresNorm
 		scoresNorm[i] = scoresNorm[i] / Z;
 }
 
-double getLinearLoss(int x, int y, std::vector<double> &scores){
+double getLinearLoss(int x, const ntstringframe* metadata, std::vector<double> &scores){
+	int y = (strcmp(metadata->data[x][0], "anomaly") == 0) ? 1 : -1;
 	double loss = y * scores[x];
 	return loss;
 }
 double getLinearLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scores){
 	double loss = 0;
 	for(int i = 0; i < (int)x.size(); i++){
-		int y = (strcmp(metadata->data[x[i]][0], "anomaly") == 0) ? 1 : -1;
-		loss += getLinearLoss(x[i], y, scores);
+		loss += getLinearLoss(x[i], metadata, scores);
 	}
 	loss /= x.size();
 	return loss;
 }
 
 
-double getLoglikelihoodLoss(int x, int y, std::vector<double> &scoresNorm){
+double getLoglikelihoodLoss(int x, const ntstringframe* metadata, std::vector<double> &scoresNorm){
+	int y = (strcmp(metadata->data[x][0], "anomaly") == 0) ? 1 : -1;
 	double loss = (-y) * log(scoresNorm[x]+1e-15);
 	return loss;
 }
@@ -486,14 +487,15 @@ double getLoglikelihoodLoss(int x, int y, std::vector<double> &scoresNorm){
 double getLoglikelihoodLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scoresNorm){
 	double loss = 0;
 	for(int i = 0; i < (int)x.size(); i++){
-		int y = (strcmp(metadata->data[x[i]][0], "anomaly") == 0) ? 1 : -1;
-		loss += getLoglikelihoodLoss(x[i], y, scoresNorm);
+		loss += getLoglikelihoodLoss(x[i], metadata, scoresNorm);
 	}
 	loss /= x.size();
 	return loss;
 }
 
-double getLogisticLoss(int x, int y, std::vector<double> &scores){
+
+double getLogisticLoss(int x, const ntstringframe* metadata, std::vector<double> &scores){
+	int y = (strcmp(metadata->data[x][0], "anomaly") == 0) ? 1 : -1;
 	double loss = y * scores[x];
 	if(loss > 100)
 		return loss;
@@ -504,8 +506,7 @@ double getLogisticLoss(int x, int y, std::vector<double> &scores){
 double getLogisticLoss(std::vector<int> x, const ntstringframe* metadata, std::vector<double> &scores){
 	double loss = 0;
 	for(int i = 0; i < (int)x.size(); i++){
-		int y = (strcmp(metadata->data[x[i]][0], "anomaly") == 0) ? 1 : -1;
-		loss += getLogisticLoss(x[i], y, scores);
+		loss += getLogisticLoss(x[i], metadata, scores);
 	}
 	loss /= x.size();
 	return loss;
@@ -557,6 +558,7 @@ int main(int argc, char* argv[]) {
 		variableLearningRate = true;
 	if(pargs->posWeight == 1)
 		Tree::POS_WEIGHT_ONLY = true;
+	int reInitWeights = pargs->reInitWeights;
 
 	char typeLoss[100], typeUpdate[100];
 	if(lossType == 0)
@@ -591,6 +593,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Learning Rate    = " << LRATE << std::endl;
 	std::cout << "Variable LRate   = " << variableLearningRate << std::endl;
 	std::cout << "Positive W only  = " << Tree::POS_WEIGHT_ONLY << std::endl;
+	std::cout << "ReInitWgts       = " << reInitWeights << std::endl;
 
 //	char treeFile[1000];
 //	char fname[1000];
@@ -661,45 +664,49 @@ int main(int argc, char* argv[]) {
 			}
 			gotFeedback[minInd] = true;
 			feedbackIdx.push_back(minInd);
-			int y = -1;
-			if(strcmp(metadata->data[minInd][0], "anomaly") == 0){
-				y = 1;
+			if(strcmp(metadata->data[minInd][0], "anomaly") == 0)
 				numAnomFound++;
-			}
 			stats << "," << numAnomFound;
+
 			if(lossType == 0){//linear loss
-				costBefore[feed] = getLinearLoss(minInd, y, scores);
+				costBefore[feed] = getLinearLoss(minInd, metadata, scores);
 				avgcostBefore[feed] = getLinearLoss(feedbackIdx, metadata, scores);
 
 				if(updateType == 0){// online update
-					for(int i = 0; i < numGradUpd; i++)
+					int y = (strcmp(metadata->data[minInd][0], "anomaly") == 0) ? 1 : -1;
+					for(int i = 0; i < numGradUpd; i++){
 						iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE, REG);
+					}
 				}
 				else if(updateType == 1){// stochastic update
 					for(int i = 0; i < numGradUpd; i++){
 						shuffle(feedbackIdx);
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
+							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE/feedbackIdx.size(), REG);
 						}
 					}
 				}
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < numGradUpd; i++){
+						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
 						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE/feedbackIdx.size(), REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
+							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE/feedbackIdx.size(), 0);
 						}
 					}
 				}
 
-				costAfter[feed] = getLinearLoss(minInd, y, scores);
+				costAfter[feed] = getLinearLoss(minInd, metadata, scores);
 				avgcostAfter[feed] = getLinearLoss(feedbackIdx, metadata, scores);
 			}
 			else if(lossType == 1){//log likelihood loss
-				costBefore[feed] = getLoglikelihoodLoss(minInd, y, scoresNorm);
+				costBefore[feed] = getLoglikelihoodLoss(minInd, metadata, scoresNorm);
 				avgcostBefore[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm);
 
 				if(updateType == 0){// online update
+					int y = (strcmp(metadata->data[minInd][0], "anomaly") == 0) ? 1 : -1;
 					for(int i = 0; i < numGradUpd; i++){
 						iff.updateWeights(scores, dt->data[minInd], -y, LRATE, REG);
 						normalizeScore(scores, scoresNorm);
@@ -710,6 +717,7 @@ int main(int argc, char* argv[]) {
 					for(int i = 0; i < numGradUpd; i++){
 						shuffle(feedbackIdx);
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
+							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE, REG);
 							normalizeScore(scores, scoresNorm);
 							iff.computeMass(scoresNorm);
@@ -718,23 +726,26 @@ int main(int argc, char* argv[]) {
 				}
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < numGradUpd; i++){
+						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
 						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, LRATE/feedbackIdx.size(), REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
+							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE/feedbackIdx.size(), 0);
 						}
-						normalizeScore(scores, scoresNorm);
-						iff.computeMass(scoresNorm);
 					}
+					normalizeScore(scores, scoresNorm);
+					iff.computeMass(scoresNorm);
 				}
 
-				costAfter[feed] = getLoglikelihoodLoss(minInd, y, scoresNorm);
+				costAfter[feed] = getLoglikelihoodLoss(minInd, metadata, scoresNorm);
 				avgcostAfter[feed] = getLoglikelihoodLoss(feedbackIdx, metadata, scoresNorm);
 			}
 			else if(lossType == 2){//logistic loss
-				costBefore[feed] = getLogisticLoss(minInd, y, scores);
+				costBefore[feed] = getLogisticLoss(minInd, metadata, scores);
 				avgcostBefore[feed] = getLogisticLoss(feedbackIdx, metadata, scores);
 
 				if(updateType == 0){// online update
+					int y = (strcmp(metadata->data[minInd][0], "anomaly") == 0) ? 1 : -1;
 					for(int i = 0; i < numGradUpd; i++){
 						double change = 1 / (1 + exp(-y * scores[minInd]));
 						if(change > 1e-6){
@@ -746,6 +757,7 @@ int main(int argc, char* argv[]) {
 					for(int i = 0; i < numGradUpd; i++){
 						shuffle(feedbackIdx);
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
+							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							double change = 1 / (1 + exp(-y * scores[feedbackIdx[j]]));
 							if(change > 1e-6){
 								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE*change, REG);
@@ -754,12 +766,17 @@ int main(int argc, char* argv[]) {
 					}
 				}
 				else if(updateType == 2){// batch update
+					std::vector<double> tscores;
+					for(int ii = 0; ii < (int)scores.size(); ii++)
+						tscores.push_back(scores[ii]);
 					for(int i = 0; i < numGradUpd; i++){
-						double change = 1 / (1 + exp(-y * scores[feedbackIdx[0]]));
+						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
+						double change = 1 / (1 + exp(-y * tscores[feedbackIdx[0]]));
 						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0,
 								LRATE*change/feedbackIdx.size(), REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
-							double change = 1 / (1 + exp(-y * scores[feedbackIdx[j]]));
+							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
+							double change = 1 / (1 + exp(-y * tscores[feedbackIdx[j]]));
 							if(change > 1e-6){
 								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0,
 										LRATE*change/feedbackIdx.size(), 0);
@@ -768,8 +785,14 @@ int main(int argc, char* argv[]) {
 					}
 				}
 
-				costAfter[feed] = getLogisticLoss(minInd, y, scores);
+				costAfter[feed] = getLogisticLoss(minInd, metadata, scores);
 				avgcostAfter[feed] = getLogisticLoss(feedbackIdx, metadata, scores);
+				// for stochastic and batch update reinitialize weights
+			}
+			if(reInitWeights == 1){
+				if(updateType == 1 || updateType == 2){
+					iff.reinitializeWeights();
+				}
 			}
 		}
 		stats << "\n";

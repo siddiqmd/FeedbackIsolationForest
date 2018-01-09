@@ -289,6 +289,17 @@ double Tree::getL1NormofWeights(){
 			this->rightChild->getL1NormofWeights();
 }
 
+void Tree::reinitializeWeights(){
+	if(this->leftChild == NULL || this->rightChild == NULL){
+		this->weight = this->nodeSize;
+	}
+	else{
+		this->weight = 1;
+		this->leftChild->reinitializeWeights();
+		this->rightChild->reinitializeWeights();
+	}
+}
+
 /*
  * takes an instance as vector of double
  */

@@ -1,13 +1,13 @@
 
-pdf(file = paste0('pdf/LossPlots_test.pdf'), width = 16, height = 8)
-for(dataset in c("ann_thyroid_1v3", "cardiotocography_1", "mammography", "abalone", "yeast")[2]){
+pdf(file = paste0('pdf/LossPlots_batch.pdf'), width = 16, height = 8)
+for(dataset in c("ann_thyroid_1v3", "cardiotocography_1", "mammography", "abalone", "yeast")[1]){
   for(ng in c(1,10)[1]){
     par(mfrow=c(1,2))
     for(lossType in c('linear', 'loglikelihood', 'logistic')){
       for(reg in c('0', '0.0001', '0.001', '0.01', '0.1', '0.5')[c(1,4,6)[1]]){
-        for(updType in c('online', 'stochastic', 'batch')[1]){
-          for(lrate in c(0,1)){
-            for(pwt in c(0,1)){
+        for(updType in c('online', 'stochastic', 'batch')[2:3]){
+          for(lrate in c(0,1)[2]){
+            for(pwt in c(0,1)[1]){
               X <- read.csv(paste0('../out/', dataset, '_1_cost_feed_100_losstype_', lossType, '_updatetype_', updType, 
                                    '_ngrad_', ng, '_reg_', reg, '_lrate_', lrate, '_pwgt_', pwt, '.csv'))
               for(iter in 0){

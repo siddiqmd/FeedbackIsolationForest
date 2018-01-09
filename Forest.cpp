@@ -28,6 +28,11 @@ double Forest::getL1NormofWeights(){
 	}
 	return L1norm;
 }
+void Forest::reinitializeWeights(){
+	for(int i = 0; i < this->ntree; i++){
+		this->trees[i]->reinitializeWeights();
+	}
+}
 /*
  * Accepts single point (row) and return Anomaly Score
  */

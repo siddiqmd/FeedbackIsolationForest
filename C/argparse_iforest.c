@@ -1,6 +1,6 @@
 #include "argparse_iforest.h"
 
-#define NOPTS 18
+#define NOPTS 19
 #define IOPT 0
 #define OOPT 1
 #define MOPT 2
@@ -19,6 +19,7 @@
 #define GOPT 15
 #define LROPT 16
 #define POPT 17
+#define RIOPT 18
 
 d(option)* option_spec() {
     d(option)* opts = vecalloc(option,NOPTS);
@@ -202,6 +203,16 @@ d(option)* option_spec() {
         .isflag = false,
         .flagged = false
     };
+    opts[RIOPT] = (option){
+        .sarg = 'z',
+        .larg = "reInitWeights",
+        .name = "Z",
+        .desc = "specify whether weights reset to 1 after each feedback.(for stochastic and batch update)",
+        .default_value = "0",
+        .value = NULL,
+        .isflag = false,
+        .flagged = false
+    };
 
     return opts;
 }
@@ -261,5 +272,6 @@ parsed_args* validate_args(d(option*) opts) {
     pargs->numGradUpd = strtol(opts[GOPT].value,NULL,10);
     pargs->learningRate = strtod(opts[LROPT].value,NULL);
     pargs->posWeight = strtol(opts[POPT].value,NULL,10);
+    pargs->reInitWeights = strtol(opts[POPT].value,NULL,10);
     return pargs;
 }

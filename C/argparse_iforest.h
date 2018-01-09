@@ -22,7 +22,7 @@ struct parsed_args {
     int numGradUpd;
     double learningRate;
     int posWeight;
+    int reInitWeights;
 };
-
 
 #endif
