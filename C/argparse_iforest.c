@@ -272,6 +272,6 @@ parsed_args* validate_args(d(option*) opts) {
     pargs->numGradUpd = strtol(opts[GOPT].value,NULL,10);
     pargs->learningRate = strtod(opts[LROPT].value,NULL);
     pargs->posWeight = strtol(opts[POPT].value,NULL,10);
-    pargs->reInitWeights = strtol(opts[POPT].value,NULL,10);
+    pargs->reInitWeights = strtol(opts[RIOPT].value,NULL,10);
     return pargs;
 }
