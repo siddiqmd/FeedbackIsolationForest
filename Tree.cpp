@@ -155,7 +155,7 @@ void Tree::weightIndexedScore(std::vector<double> &scores){
 	this->rightChild->weightIndexedScore(scores);
 }
 
-void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, double lrate, double reg){
+void Tree::updateWeightsLLH(std::vector<double> &scores, double *inst, int direction, double lrate, double reg){
 	double prevWeight, delta;
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
@@ -166,17 +166,16 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 
 		double regPen = 0;
 		if(reg != 0){
-			if(cur->weight - 1 > 0)
-				regPen = -1;
+			regPen = 1;
 			if(cur->weight - 1 < 0)
-				regPen = 1;
+				regPen = -1;
 		}
 		prevWeight = cur->weight;
 		// for leaf with multiple nodes change weights accordingly
 		if(cur->leftChild == NULL || cur->rightChild == NULL)
-			cur->weight += direction * cur->nodeSize * lrate * (1 - cur->mass) + cur->nodeSize*reg*regPen;
+			cur->weight += direction * cur->nodeSize * lrate * ((1 - cur->mass) + reg*regPen);
 		else
-			cur->weight += direction * lrate * (1 - cur->mass) + reg * regPen;
+			cur->weight += direction * lrate * ((1 - cur->mass) + reg * regPen);
 
 		if(Tree::POS_WEIGHT_ONLY == true && cur->weight < 0) cur->weight = 0;// prevent weight to be negative
 		delta = cur->weight - prevWeight;
@@ -197,17 +196,16 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 
 		double regPen = 0;
 		if(reg != 0){
-			if(cur->weight - 1 > 0)
-				regPen = -1;
+			regPen = 1;
 			if(cur->weight - 1 < 0)
-				regPen = 1;
+				regPen = -1;
 		}
 		prevWeight = cur->weight;
 		// for leaf with multiple nodes change weights accordingly
 		if(cur->leftChild == NULL || cur->rightChild == NULL)
-			cur->weight += direction * cur->nodeSize * change + cur->nodeSize*reg*regPen;
+			cur->weight += direction * cur->nodeSize * (change + reg*regPen);
 		else
-			cur->weight += direction * change + reg * regPen;
+			cur->weight += direction * (change + reg * regPen);
 
 		if(Tree::POS_WEIGHT_ONLY == true && cur->weight < 0) cur->weight = 0;// prevent weight to be negative
 		delta = cur->weight - prevWeight;

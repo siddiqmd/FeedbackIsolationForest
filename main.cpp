@@ -615,7 +615,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "ReInitWgts       = " << reInitWeights << std::endl;
 
 //	char treeFile[1000];
-//	char fname[1000];
+	char fname[1000];
 	char statFile[1000], statNoFeed[1000];
 	double costBefore[100], costAfter[100], avgcostBefore[100], avgcostAfter[100];//need dynamic memory allocation for feedback > 100
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
@@ -668,10 +668,11 @@ int main(int argc, char* argv[]) {
 //			if(feed == 0 || feed == (numFeedback-1)){
 //				iff.printStat(tree);
 //			}
-//			if(feed == 0 || feed == (numFeedback-1)){
-//				sprintf(fname, "%s_iter%d_feed%d_type_%s.csv", output_name, iter+1, feed, type);
-//				printScoreToFile(scores, csv, metadata, dt, fname);
-//			}
+			if(feed == 0 || feed == (numFeedback-1)){
+				sprintf(fname, "%s_iter_%d_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d_inwgt_%d.csv",
+						output_name, iter + 1, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY, reInitWeights);
+				printScoreToFile(scores, csv, metadata, dt, fname);
+			}
 
 			double min = DBL_MAX;
 			int minInd = -1;
@@ -702,7 +703,7 @@ int main(int argc, char* argv[]) {
 				if(updateType == 0){// online update
 					int y = (strcmp(metadata->data[minInd][0], "anomaly") == 0) ? 1 : -1;
 					for(int i = 0; i < updCnt; i++){
-						iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE, REG);
+						iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE, LRATE*REG);
 						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
 							if(PRINT) std::cout << "," << i+1 << std::flush;
 							break;
@@ -713,7 +714,7 @@ int main(int argc, char* argv[]) {
 					for(int i = 0; i < updCnt; i++){
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
 							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE, REG);
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE, LRATE*REG);
 						}
 						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
 							if(PRINT) std::cout << "," << i+1 << std::flush;
@@ -725,7 +726,7 @@ int main(int argc, char* argv[]) {
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < updCnt; i++){
 						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
-						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE, REG);
+						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE, LRATE*REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
 							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE, 0);
@@ -747,7 +748,7 @@ int main(int argc, char* argv[]) {
 				if(updateType == 0){// online update
 					int y = (strcmp(metadata->data[minInd][0], "anomaly") == 0) ? 1 : -1;
 					for(int i = 0; i < updCnt; i++){
-						iff.updateWeights(scores, dt->data[minInd], -y, LRATE, REG);
+						iff.updateWeightsLLH(scores, dt->data[minInd], -y, LRATE, REG);
 						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
 							if(PRINT) std::cout << "," << i+1 << std::flush;
 							break;
@@ -760,7 +761,7 @@ int main(int argc, char* argv[]) {
 					for(int i = 0; i < updCnt; i++){
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
 							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE, REG);
+							iff.updateWeightsLLH(scores, dt->data[feedbackIdx[j]], -y, LRATE, REG);
 							normalizeScore(scores, scoresNorm);
 							iff.computeMass(scoresNorm);
 						}
@@ -774,10 +775,10 @@ int main(int argc, char* argv[]) {
 				else if(updateType == 2){// batch update
 					for(int i = 0; i < updCnt; i++){
 						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
-						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, LRATE, REG);
+						iff.updateWeightsLLH(scores, dt->data[feedbackIdx[0]], -y, LRATE, REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
 							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE, 0);
+							iff.updateWeightsLLH(scores, dt->data[feedbackIdx[j]], -y, LRATE, 0);
 						}
 						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
 							if(PRINT) std::cout << "," << i+1 << std::flush;
@@ -800,7 +801,7 @@ int main(int argc, char* argv[]) {
 					for(int i = 0; i < updCnt; i++){
 						double change = 1 / (1 + exp(-y * scores[minInd]));
 						if(change > 1e-5){
-							iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE*change, REG);
+							iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE*change, LRATE*REG);
 						}
 						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
 							if(PRINT) std::cout << "," << i+1 << std::flush;
@@ -814,7 +815,7 @@ int main(int argc, char* argv[]) {
 							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							double change = 1 / (1 + exp(-y * scores[feedbackIdx[j]]));
 							if(change > 1e-6){
-								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE*change, REG);
+								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE*change, LRATE*REG);
 							}
 						}
 						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
@@ -831,7 +832,7 @@ int main(int argc, char* argv[]) {
 					for(int i = 0; i < updCnt; i++){
 						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
 						double change = 1 / (1 + exp(-y * tscores[feedbackIdx[0]]));
-						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE*change, REG);
+						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE*change, LRATE*REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
 							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							double change = 1 / (1 + exp(-y * tscores[feedbackIdx[j]]));
