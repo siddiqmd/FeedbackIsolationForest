@@ -28,6 +28,13 @@ double Forest::getL1NormofWeights(){
 	}
 	return L1norm;
 }
+
+void Forest::getCurrentWeights(std::vector<double> &w){
+	for(int i = 0; i < this->ntree; i++){
+		this->trees[i]->getCurrentWeights(w);
+	}
+}
+
 void Forest::reinitializeWeights(){
 	for(int i = 0; i < this->ntree; i++){
 		this->trees[i]->reinitializeWeights();

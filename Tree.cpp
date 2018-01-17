@@ -289,6 +289,14 @@ double Tree::getL1NormofWeights(){
 			this->rightChild->getL1NormofWeights();
 }
 
+void Tree::getCurrentWeights(std::vector<double> &w){
+	w.push_back(this->weight);
+	if(this->leftChild != NULL && this->rightChild != NULL){
+		this->leftChild->getCurrentWeights(w);
+		this->rightChild->getCurrentWeights(w);
+	}
+}
+
 void Tree::reinitializeWeights(){
 	if(this->leftChild == NULL || this->rightChild == NULL){
 		this->weight = this->nodeSize;

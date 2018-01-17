@@ -53,6 +53,7 @@ public:
 	std::vector<double> AnomalyScore(doubleframe* df);
 	double getL2Norm2(double *inst);
 	double getL1NormofWeights();
+	void getCurrentWeights(std::vector<double> &w);
 	void reinitializeWeights();
 	virtual std::vector<double> pathLength(double *inst);
 	std::vector<std::vector<double> > pathLength(doubleframe* data);

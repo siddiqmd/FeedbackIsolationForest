@@ -529,6 +529,23 @@ void shuffle(std::vector<int> &feedbackIdx){
 	}
 }
 
+double getDifference(std::vector<double> &w0, std::vector<double> &w1, bool &first, IsolationForest &iff){
+	if(first){
+		w0.clear();
+		iff.getCurrentWeights(w0);
+		first = false;
+	}else{
+		w1.clear();
+		iff.getCurrentWeights(w1);
+		first = true;
+	}
+	double diff = 0;
+	for(int k = 0; k < (int)w0.size(); k++){
+		diff += fabs(w0[k] - w1[k]);
+	}
+	return diff;
+}
+
 int main(int argc, char* argv[]) {
 	std::time_t st = std::time(nullptr);
 	srand(0); //randomize for random number generator.
@@ -545,6 +562,7 @@ int main(int argc, char* argv[]) {
 //	bool verbose = pargs->verbose;
 	bool rsample = nsample != 0;
 
+	bool PRINT = true;
 	// Feedback Parameters
 	int numIter = pargs->numIteration;
 	int numFeedback = pargs->numFeedback;
@@ -559,6 +577,7 @@ int main(int argc, char* argv[]) {
 	if(pargs->posWeight == 1)
 		Tree::POS_WEIGHT_ONLY = true;
 	int reInitWeights = pargs->reInitWeights;
+	int MAXGRADITER = 100;
 
 	char typeLoss[100], typeUpdate[100];
 	if(lossType == 0)
@@ -598,7 +617,7 @@ int main(int argc, char* argv[]) {
 //	char treeFile[1000];
 //	char fname[1000];
 	char statFile[1000], statNoFeed[1000];
-	double costBefore[100], costAfter[100], avgcostBefore[100], avgcostAfter[100];//need dynamic memory allocation
+	double costBefore[100], costAfter[100], avgcostBefore[100], avgcostAfter[100];//need dynamic memory allocation for feedback > 100
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
 	sprintf(statFile,   "%s_summary_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d_inwgt_%d.csv",
 			output_name, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY, reInitWeights);
@@ -668,32 +687,52 @@ int main(int argc, char* argv[]) {
 				numAnomFound++;
 			stats << "," << numAnomFound;
 
+			std::vector<double> w0, w1;
+			bool first = false;
+			if(numGradUpd == 0)
+				iff.getCurrentWeights(w0);
+			int updCnt = numGradUpd;
+			if(updCnt == 0)
+				updCnt = MAXGRADITER;
+
 			if(lossType == 0){//linear loss
 				costBefore[feed] = getLinearLoss(minInd, metadata, scores);
 				avgcostBefore[feed] = getLinearLoss(feedbackIdx, metadata, scores);
 
 				if(updateType == 0){// online update
 					int y = (strcmp(metadata->data[minInd][0], "anomaly") == 0) ? 1 : -1;
-					for(int i = 0; i < numGradUpd; i++){
+					for(int i = 0; i < updCnt; i++){
 						iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE, REG);
-					}
-				}
-				else if(updateType == 1){// stochastic update
-					for(int i = 0; i < numGradUpd; i++){
-						shuffle(feedbackIdx);
-						for(int j = 0; j < (int)feedbackIdx.size(); j++){
-							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE/feedbackIdx.size(), REG);
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
 						}
 					}
 				}
+				else if(updateType == 1){// stochastic update
+					for(int i = 0; i < updCnt; i++){
+						for(int j = 0; j < (int)feedbackIdx.size(); j++){
+							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE, REG);
+						}
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
+						}
+						shuffle(feedbackIdx);
+					}
+				}
 				else if(updateType == 2){// batch update
-					for(int i = 0; i < numGradUpd; i++){
+					for(int i = 0; i < updCnt; i++){
 						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
-						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE/feedbackIdx.size(), REG);
+						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE, REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
 							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE/feedbackIdx.size(), 0);
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE, 0);
+						}
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
 						}
 					}
 				}
@@ -707,34 +746,46 @@ int main(int argc, char* argv[]) {
 
 				if(updateType == 0){// online update
 					int y = (strcmp(metadata->data[minInd][0], "anomaly") == 0) ? 1 : -1;
-					for(int i = 0; i < numGradUpd; i++){
+					for(int i = 0; i < updCnt; i++){
 						iff.updateWeights(scores, dt->data[minInd], -y, LRATE, REG);
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
+						}
 						normalizeScore(scores, scoresNorm);
 						iff.computeMass(scoresNorm);
 					}
 				}
 				else if(updateType == 1){// stochastic update
-					for(int i = 0; i < numGradUpd; i++){
-						shuffle(feedbackIdx);
+					for(int i = 0; i < updCnt; i++){
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
 							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE, REG);
 							normalizeScore(scores, scoresNorm);
 							iff.computeMass(scoresNorm);
 						}
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
+						}
+						shuffle(feedbackIdx);
 					}
 				}
 				else if(updateType == 2){// batch update
-					for(int i = 0; i < numGradUpd; i++){
+					for(int i = 0; i < updCnt; i++){
 						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
-						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, LRATE/feedbackIdx.size(), REG);
+						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, LRATE, REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
 							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
-							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE/feedbackIdx.size(), 0);
+							iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, LRATE, 0);
 						}
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
+						}
+						normalizeScore(scores, scoresNorm);
+						iff.computeMass(scoresNorm);
 					}
-					normalizeScore(scores, scoresNorm);
-					iff.computeMass(scoresNorm);
 				}
 
 				costAfter[feed] = getLoglikelihoodLoss(minInd, metadata, scoresNorm);
@@ -746,16 +797,19 @@ int main(int argc, char* argv[]) {
 
 				if(updateType == 0){// online update
 					int y = (strcmp(metadata->data[minInd][0], "anomaly") == 0) ? 1 : -1;
-					for(int i = 0; i < numGradUpd; i++){
+					for(int i = 0; i < updCnt; i++){
 						double change = 1 / (1 + exp(-y * scores[minInd]));
-						if(change > 1e-6){
+						if(change > 1e-5){
 							iff.updateWeights(scores, dt->data[minInd], -y, 0, LRATE*change, REG);
+						}
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
 						}
 					}
 				}
 				else if(updateType == 1){// stochastic update
-					for(int i = 0; i < numGradUpd; i++){
-						shuffle(feedbackIdx);
+					for(int i = 0; i < updCnt; i++){
 						for(int j = 0; j < (int)feedbackIdx.size(); j++){
 							int y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							double change = 1 / (1 + exp(-y * scores[feedbackIdx[j]]));
@@ -763,25 +817,35 @@ int main(int argc, char* argv[]) {
 								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE*change, REG);
 							}
 						}
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
+						}
+						shuffle(feedbackIdx);
 					}
 				}
 				else if(updateType == 2){// batch update
 					std::vector<double> tscores;
 					for(int ii = 0; ii < (int)scores.size(); ii++)
 						tscores.push_back(scores[ii]);
-					for(int i = 0; i < numGradUpd; i++){
+					for(int i = 0; i < updCnt; i++){
 						int y = (strcmp(metadata->data[feedbackIdx[0]][0], "anomaly") == 0) ? 1 : -1;
 						double change = 1 / (1 + exp(-y * tscores[feedbackIdx[0]]));
-						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0,
-								LRATE*change/feedbackIdx.size(), REG);
+						iff.updateWeights(scores, dt->data[feedbackIdx[0]], -y, 0, LRATE*change, REG);
 						for(int j = 1; j < (int)feedbackIdx.size(); j++){
 							y = (strcmp(metadata->data[feedbackIdx[j]][0], "anomaly") == 0) ? 1 : -1;
 							double change = 1 / (1 + exp(-y * tscores[feedbackIdx[j]]));
 							if(change > 1e-6){
-								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0,
-										LRATE*change/feedbackIdx.size(), 0);
+								iff.updateWeights(scores, dt->data[feedbackIdx[j]], -y, 0, LRATE*change, 0);
 							}
 						}
+						if(numGradUpd == 0 && (i == (MAXGRADITER-1) || getDifference(w0, w1, first, iff) < 1e-2)){
+							if(PRINT) std::cout << "," << i+1 << std::flush;
+							break;
+						}
+						tscores.clear();
+						for(int ii = 0; ii < (int)scores.size(); ii++)
+							tscores.push_back(scores[ii]);
 					}
 				}
 
@@ -790,9 +854,7 @@ int main(int argc, char* argv[]) {
 				// for stochastic and batch update reinitialize weights
 			}
 			if(reInitWeights == 1){
-				if(updateType == 1 || updateType == 2){
-					iff.reinitializeWeights();
-				}
+				iff.reinitializeWeights();
 			}
 		}
 		stats << "\n";
