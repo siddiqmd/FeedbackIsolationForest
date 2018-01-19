@@ -155,7 +155,7 @@ void Tree::weightIndexedScore(std::vector<double> &scores){
 	this->rightChild->weightIndexedScore(scores);
 }
 
-void Tree::updateWeightsLLH(std::vector<double> &scores, double *inst, int direction, double lrate, double reg){
+void Tree::updateWeightsLLH(std::vector<double> &scores, double *inst, int direction, double lrate, double reg, int regType){
 	double prevWeight, delta;
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
@@ -169,6 +169,8 @@ void Tree::updateWeightsLLH(std::vector<double> &scores, double *inst, int direc
 			regPen = 1;
 			if(cur->weight - 1 < 0)
 				regPen = -1;
+			if(regType == 2)
+				regPen = cur->weight - 1;
 		}
 		prevWeight = cur->weight;
 		// for leaf with multiple nodes change weights accordingly
@@ -185,7 +187,7 @@ void Tree::updateWeightsLLH(std::vector<double> &scores, double *inst, int direc
 }
 
 
-void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change, double reg){
+void Tree::updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change, double reg, int regType){
 	double prevWeight, delta;
 	Tree *cur = this;
 	while(cur->leftChild != NULL || cur->rightChild != NULL){
@@ -199,6 +201,8 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 			regPen = 1;
 			if(cur->weight - 1 < 0)
 				regPen = -1;
+			if(regType == 2)
+				regPen = cur->weight - 1;
 		}
 		prevWeight = cur->weight;
 		// for leaf with multiple nodes change weights accordingly

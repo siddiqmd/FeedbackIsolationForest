@@ -299,17 +299,17 @@ void Forest::weightIndexedScore(std::vector<double> &scores){
 	}
 }
 
-void Forest::updateWeightsLLH(std::vector<double> &scores, double *inst, int direction, double lrate, double reg){
+void Forest::updateWeightsLLH(std::vector<double> &scores, double *inst, int direction, double lrate, double reg, int regType){
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
-		(*it)->updateWeightsLLH(scores, inst, direction, lrate, reg);
+		(*it)->updateWeightsLLH(scores, inst, direction, lrate, reg, regType);
 	}
 }
 
-void Forest::updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change, double reg){
+void Forest::updateWeights(std::vector<double> &scores, double *inst, int direction, int type, double change, double reg, int regType){
 	for (std::vector<Tree*>::iterator it = this->trees.begin();
 			it != trees.end(); ++it) {
-		(*it)->updateWeights(scores, inst, direction, type, change, reg);
+		(*it)->updateWeights(scores, inst, direction, type, change, reg, regType);
 	}
 }
 

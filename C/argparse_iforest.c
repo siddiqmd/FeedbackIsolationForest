@@ -103,22 +103,22 @@ d(option)* option_spec() {
         .isflag = true,
         .flagged = false
     };
-    opts[WOPT] = (option){
-        .sarg = 'w',
-        .larg = "windowsize",
-        .name = "N",
-        .desc = "specify window size.",
-        .default_value = "512",
-        .value = NULL,
-        .isflag = false,
-        .flagged = false
-    };
     opts[COPT] = (option){
         .sarg = 'c',
         .larg = "columns",
         .name = "N",
         .desc = "specify number of columns to use.",
         .default_value = "0",
+        .value = NULL,
+        .isflag = false,
+        .flagged = false
+    };
+    opts[WOPT] = (option){
+        .sarg = 'w',
+        .larg = "RegType",
+        .name = "W",
+        .desc = "Type of regularizer: 1 indicates l1 and 2 indicates l2",
+        .default_value = "1",
         .value = NULL,
         .isflag = false,
         .flagged = false
@@ -262,7 +262,7 @@ parsed_args* validate_args(d(option*) opts) {
     pargs->maxdepth = strtol(opts[DOPT].value,NULL,10);
     pargs->header = opts[HOPT].flagged;
     pargs->verbose = opts[VOPT].flagged;
-    pargs->window_size = strtol(opts[WOPT].value,NULL,10);
+    pargs->regularizerType = strtol(opts[WOPT].value,NULL,10);
     pargs->columns = strtol(opts[COPT].value,NULL,10);
     pargs->REG_PARAM = strtod(opts[ROPT].value,NULL);
     pargs->updateType = strtol(opts[UOPT].value,NULL,10);
