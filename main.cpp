@@ -577,6 +577,7 @@ int main(int argc, char* argv[]) {
 	if(pargs->posWeight == 1)
 		Tree::POS_WEIGHT_ONLY = true;
 	int reInitWeights = pargs->reInitWeights;
+	Tree::KEEP_NEG_BUT_USE_0 = (reInitWeights == 1);
 	int regularizerType = pargs->regularizerType;
 	int MAXGRADITER = 100;
 
@@ -855,9 +856,6 @@ int main(int argc, char* argv[]) {
 				costAfter[feed] = getLogisticLoss(minInd, metadata, scores);
 				avgcostAfter[feed] = getLogisticLoss(feedbackIdx, metadata, scores);
 				// for stochastic and batch update reinitialize weights
-			}
-			if(reInitWeights == 1){
-				iff.reinitializeWeights();
 			}
 		}
 		stats << "\n";

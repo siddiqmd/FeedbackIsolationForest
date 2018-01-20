@@ -35,6 +35,7 @@ public:
 	static bool checkRange;
 	static bool useVolumeForScore;
 	static bool POS_WEIGHT_ONLY;
+	static bool KEEP_NEG_BUT_USE_0;
 
 	Tree() {
 		leftChild = NULL;
