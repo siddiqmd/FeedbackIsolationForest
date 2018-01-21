@@ -183,10 +183,15 @@ void Tree::updateWeightsLLH(std::vector<double> &scores, double *inst, int direc
 		if(Tree::POS_WEIGHT_ONLY == true && cur->weight < 0) cur->weight = 0;// prevent weight to be negative
 
 		delta = cur->weight - prevWeight;
-		if(Tree::KEEP_NEG_BUT_USE_0 && cur->weight < 0){
-			delta = -prevWeight;
-			if(delta > 0)
-				delta = 0;
+
+		if(Tree::KEEP_NEG_BUT_USE_0){
+			if(cur->weight < 0){
+				delta = 0 - prevWeight;
+				if(delta > 0)
+					delta = 0;
+			}else if(prevWeight < 0){
+				delta = cur->weight - 0;
+			}
 		}
 		if(fabs(delta) > 0){
 			for(int i = 0; i < (int)cur->instIdx.size(); i++)
@@ -221,11 +226,17 @@ void Tree::updateWeights(std::vector<double> &scores, double *inst, int directio
 			cur->weight += direction * (change + reg * regPen);
 
 		if(Tree::POS_WEIGHT_ONLY == true && cur->weight < 0) cur->weight = 0;// prevent weight to be negative
+
 		delta = cur->weight - prevWeight;
-		if(Tree::KEEP_NEG_BUT_USE_0 && cur->weight < 0){
-			delta = -prevWeight;
-			if(delta > 0)
-				delta = 0;
+
+		if(Tree::KEEP_NEG_BUT_USE_0){
+			if(cur->weight < 0){
+				delta = 0 - prevWeight;
+				if(delta > 0)
+					delta = 0;
+			}else if(prevWeight < 0){
+				delta = cur->weight - 0;
+			}
 		}
 		if(fabs(delta) > 0){
 			for(int i = 0; i < (int)cur->instIdx.size(); i++)
