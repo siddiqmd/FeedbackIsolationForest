@@ -618,7 +618,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Regularizer type = L" << regularizerType << std::endl;
 
 //	char treeFile[1000];
-	char fname[1000];
+//	char fname[1000];
 	char statFile[1000], statNoFeed[1000];
 	double costBefore[1000], costAfter[1000], avgcostBefore[1000], avgcostAfter[1000];//need dynamic memory allocation for feedback > 1000
 //	sprintf(treeFile, "%s_tree_%s.txt", output_name, type);
@@ -671,11 +671,11 @@ int main(int argc, char* argv[]) {
 //			if(feed == 0 || feed == (numFeedback-1)){
 //				iff.printStat(tree);
 //			}
-			if(feed == 0 || feed == (numFeedback-1)){
-				sprintf(fname, "%s_iter_%d_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d_inwgt_%d_rtype_L%d.csv",
-						output_name, iter + 1, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY, reInitWeights, regularizerType);
-				printScoreToFile(scores, csv, metadata, dt, fname);
-			}
+//			if(feed == 0 || feed == (numFeedback-1)){
+//				sprintf(fname, "%s_iter_%d_feed_%d_losstype_%s_updatetype_%s_ngrad_%d_reg_%g_lrate_%g_pwgt_%d_inwgt_%d_rtype_L%d.csv",
+//						output_name, iter + 1, numFeedback, typeLoss, typeUpdate, numGradUpd, REG, LRATE, Tree::POS_WEIGHT_ONLY, reInitWeights, regularizerType);
+//				printScoreToFile(scores, csv, metadata, dt, fname);
+//			}
 
 			double min = DBL_MAX;
 			int minInd = -1;
