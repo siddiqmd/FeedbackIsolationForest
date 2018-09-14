@@ -112,3 +112,27 @@ iter 4, # Anomaly: Baseline -> 2 Feedback -> 7
 Avg: Baseline -> 1.8 Feedback -> 5.8
 Time elapsed: 2 seconds
 ```
+
+This will create two output files: "ann_thyroid_1v3_1_summary_feed_0_losstype_logistic_updatetype_online_ngrad_1_reg_0_lrate_1_pwgt_0_inwgt_0_rtype_L2.csv" and "ann_thyroid_1v3_1_summary_feed_10_losstype_logistic_updatetype_online_ngrad_1_reg_0_lrate_1_pwgt_0_inwgt_0_rtype_L2.csv" containing number of anomaly discovered after each feedback on different iterations.
+
+
+```
+iter,feed1,feed2,feed3,feed4,feed5,feed6,feed7,feed8,feed9,feed10
+1,0,1,1,1,1,1,1,1,2,2
+2,0,0,0,0,0,0,0,0,0,1
+3,1,1,1,1,1,2,2,2,2,2
+4,0,0,0,0,0,1,1,1,1,2
+5,0,0,1,1,1,1,1,2,2,2
+
+```
+
+```
+iter,feed1,feed2,feed3,feed4,feed5,feed6,feed7,feed8,feed9,feed10
+1,0,1,2,3,4,5,6,7,8,8
+2,0,0,0,0,0,0,0,0,0,1
+3,1,2,2,2,3,4,5,6,7,8
+4,0,0,0,0,0,1,2,3,4,5
+5,0,0,1,1,2,3,4,5,6,7
+```
+
+Note that, the first output file is the result from the baseline isolation forest hence ignores all the feedbacks.
